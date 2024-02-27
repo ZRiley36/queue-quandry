@@ -29,6 +29,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   double _progressValue = 0.0;
+  bool buttonsDisabled = false;
+  bool button1Pressed = false;
+  bool button2Pressed = false;
+  bool button3Pressed = false;
+  bool button4Pressed = false;
 
   void _startTimer() {
     const duration = Duration(seconds: 10);
@@ -59,36 +64,106 @@ class _MyHomePageState extends State<MyHomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) =>
-              SecondPage()), // Replace SecondPage() with your desired page
+        builder: (context) => SecondPage(
+          isCorrect: button1Pressed,
+        ),
+      ),
     );
+  }
+
+  void _handleButtonPressed(int buttonIndex) {
+    setState(() {
+      buttonsDisabled = true;
+      if (buttonIndex == 1) {
+        button1Pressed = true;
+      } else if (buttonIndex == 2) {
+        button2Pressed = true;
+      } else if (buttonIndex == 3) {
+        button3Pressed = true;
+      } else if (buttonIndex == 4) {
+        button4Pressed = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF9000FF),
+      backgroundColor: const Color(0xFF8300e7),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+            Text(
+              'Who queued it?',
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
-              child: const Text('Start Timer Bar'),
             ),
-            SizedBox(
-              height: 20,
+            SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg',
+                height: 200,
+              ),
             ),
+            SizedBox(height: 20),
+            for (int i = 1; i <= 4; i++)
+              Column(
+                children: [
+                  SizedBox(height: 10), // Add vertical space between buttons
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.85,
+                    child: ElevatedButton(
+                      onPressed: buttonsDisabled
+                          ? null
+                          : () => _handleButtonPressed(i),
+                      style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.resolveWith<Color>(
+                          (Set<MaterialState> states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.deepPurple.shade800;
+                            } else if (i == 1 && button1Pressed) {
+                              return Colors.deepPurple.shade800;
+                            } else if (i == 2 && button2Pressed) {
+                              return Colors.deepPurple.shade800;
+                            } else if (i == 3 && button3Pressed) {
+                              return Colors.deepPurple.shade800;
+                            } else if (i == 4 && button4Pressed) {
+                              return Colors.deepPurple.shade800;
+                            }
+                            return const Color(0xFF7000CC);
+                          },
+                        ),
+                        padding: MaterialStateProperty.all<EdgeInsets>(
+                          const EdgeInsets.all(16),
+                        ),
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Button$i',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            SizedBox(height: 20),
             Container(
               height: 4,
-              width: MediaQuery.of(context).size.width -
-                  40, // Adjust the width as needed
+              width: MediaQuery.of(context).size.width - 40,
               child: LinearProgressIndicator(
                 backgroundColor: Colors.transparent,
                 value: _progressValue,
@@ -103,14 +178,27 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class SecondPage extends StatelessWidget {
+  final bool isCorrect;
+
+  const SecondPage({Key? key, required this.isCorrect}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
+    Color backgroundColor =
+        isCorrect ? const Color(0xFF1cb955) : const Color(0xFFfe3356);
+    String message = isCorrect ? 'Correct' : 'Wrong';
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Second Page'),
-      ),
+      backgroundColor: backgroundColor,
       body: Center(
-        child: Text('This is the page where the queuer is listed'),
+        child: Text(
+          message,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
