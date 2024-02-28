@@ -128,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(height: 20),
             for (int i = 1; i <= 3; i++)
               Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(height: 10), // Add vertical space between buttons
                   SizedBox(
@@ -210,6 +211,7 @@ class SecondPage extends StatelessWidget {
       backgroundColor: backgroundColor,
       body: Center(
           child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             message,
