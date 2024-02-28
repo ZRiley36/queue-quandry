@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+// import 'package:share_plus/share_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -94,15 +95,15 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
+            const Text(
               'Who queued it?',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 15),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
@@ -110,8 +111,22 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: 200,
               ),
             ),
+            const SizedBox(height: 2),
+            const Text(
+              'Purple Haze',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Text('Jimi Hendrix',
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal)),
             SizedBox(height: 20),
-            for (int i = 1; i <= 4; i++)
+            for (int i = 1; i <= 3; i++)
               Column(
                 children: [
                   SizedBox(height: 10), // Add vertical space between buttons
@@ -140,36 +155,39 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                         padding: MaterialStateProperty.all<EdgeInsets>(
-                          const EdgeInsets.all(16),
-                        ),
+                            const EdgeInsets.only(
+                                left: 10, right: 10, top: 20, bottom: 20)),
                         shape:
                             MaterialStateProperty.all<RoundedRectangleBorder>(
                           RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                         ),
                       ),
                       child: Text(
-                        'Button$i',
+                        'Option $i',
                         style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
+                            fontSize: 22,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
                 ],
               ),
-            SizedBox(height: 20),
-            Container(
-              height: 4,
-              width: MediaQuery.of(context).size.width - 40,
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.transparent,
-                value: _progressValue,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            const SizedBox(height: 30),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 6,
+                width: MediaQuery.of(context).size.width * 0.6,
+                child: LinearProgressIndicator(
+                  backgroundColor: Color(0xFF9d40e3),
+                  value: _progressValue,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               ),
-            ),
+            )
           ],
         ),
       ),
@@ -191,15 +209,23 @@ class SecondPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+          child: Column(
+        children: [
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-        ),
-      ),
+          ElevatedButton(
+              onPressed: () {
+                // Share.share('hello');
+              },
+              child: Text('Share'))
+        ],
+      )),
     );
   }
 }
