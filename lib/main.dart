@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-// import 'package:share_plus/share_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +16,87 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: const LobbyPage(),
+    );
+  }
+}
+
+class LobbyPage extends StatefulWidget {
+  const LobbyPage({Key? key}) : super(key: key);
+
+  @override
+  _LobbyPageState createState() => _LobbyPageState();
+}
+
+class _LobbyPageState extends State<LobbyPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF121212),
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            // Navigator.of(context).pop();
+          },
+        ),
+        title: const Text(
+          'Create Lobby',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+      backgroundColor: Color(0xFF121212),
+      body: Padding(
+        padding: EdgeInsets.only(left: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 30),
+            const Text(
+              'Queue Quandary',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'contribute anonymously to a playlist. try to guess who queued each song after they play.',
+              style: TextStyle(color: Colors.white),
+            ),
+            Expanded(
+              child: Container(
+                alignment: Alignment.bottomCenter,
+                padding: EdgeInsets.only(bottom: 50),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MyHomePage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF9d40e3),
+                      minimumSize:
+                          Size(150, 50) // Change button color to purple
+                      ),
+                  child: const Text(
+                    'Let\'s Play',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -37,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool button4Pressed = false;
 
   void _startTimer() {
-    const duration = Duration(seconds: 10);
+    const duration = Duration(seconds: 5);
     const steps = 500; // Number of steps for smoother animation
     final stepDuration = duration ~/ steps;
     final increment = 1 / steps.toDouble();
@@ -223,9 +303,14 @@ class SecondPage extends StatelessWidget {
           ),
           ElevatedButton(
               onPressed: () {
-                // Share.share('hello');
+                // Navigator.push(
+                //     context,
+                //     MaterialPageRoute(
+                //         builder: (context) => const MyHomePage()));
+
+                Share.share('hello');
               },
-              child: Text('Share'))
+              child: Text('DEBUG: share'))
         ],
       )),
     );
