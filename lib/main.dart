@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 
+const Color spotifyGreen = Color(0xFF1cb955);
+
+Map<String, int> players = {
+  'Kate': 10,
+  'Max': 20,
+  'Peter': 15,
+};
+
 void main() {
   runApp(const MyApp());
 }
@@ -13,9 +21,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Gotham'),
       home: const LobbyPage(),
     );
   }
@@ -88,8 +94,9 @@ class _LobbyPageState extends State<LobbyPage> {
                     'Let\'s Play',
                     style: TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        fontFamily: 'Gotham'),
                   ),
                 ),
               ),
@@ -109,12 +116,24 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // Fields (to be mutated by Spotify API)
+  String songName = "Purple Haze";
+  String songArtist = "Jimi Hendrix";
+  String albumArt =
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg';
+
+  // Fields (to be mutated by our backend)
+  int guiltyPlayer = 0;
+
+  // Local fields
   double _progressValue = 0.0;
   bool buttonsDisabled = false;
   bool button1Pressed = false;
   bool button2Pressed = false;
   bool button3Pressed = false;
   bool button4Pressed = false;
+  bool correctGuess = false;
+  String playerName = 'Billy';
 
   void _startTimer() {
     const duration = Duration(seconds: 5);
@@ -146,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => SecondPage(
-          isCorrect: button1Pressed,
+          isCorrect: correctGuess,
         ),
       ),
     );
@@ -163,6 +182,10 @@ class _MyHomePageState extends State<MyHomePage> {
         button3Pressed = true;
       } else if (buttonIndex == 4) {
         button4Pressed = true;
+      }
+
+      if (buttonIndex - 1 == guiltyPlayer) {
+        correctGuess = true;
       }
     });
   }
@@ -183,33 +206,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg',
+                albumArt,
                 height: 200,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Purple Haze',
-              style: TextStyle(
+            Text(
+              songArtist,
+              style: const TextStyle(
                 fontSize: 20,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Text('Jimi Hendrix',
-                style: TextStyle(
+            Text(songArtist,
+                style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
                     fontWeight: FontWeight.normal)),
-            SizedBox(height: 20),
-            for (int i = 1; i <= 3; i++)
+            const SizedBox(height: 20),
+            for (int i = 0; i < players.entries.length; i++)
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   SizedBox(height: 10), // Add vertical space between buttons
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.85,
@@ -246,8 +269,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       child: Text(
-                        'Option $i',
-                        style: TextStyle(
+                        players.entries.elementAt(i).key,
+                        style: const TextStyle(
                             fontSize: 22,
                             color: Colors.white,
                             fontWeight: FontWeight.bold),
@@ -285,32 +308,65 @@ class SecondPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Color backgroundColor =
         isCorrect ? const Color(0xFF1cb955) : const Color(0xFFfe3356);
-    String message = isCorrect ? 'Correct' : 'Wrong';
+    String playStatus = isCorrect ? 'Correct' : 'Wrong';
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Center(
           child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(
+            height: 80,
+          ),
           Text(
-            message,
-            style: TextStyle(
-              fontSize: 24,
+            playStatus,
+            style: const TextStyle(
+              fontSize: 40,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          ElevatedButton(
-              onPressed: () {
-                // Navigator.push(
-                //     context,
-                //     MaterialPageRoute(
-                //         builder: (context) => const MyHomePage()));
+          const SizedBox(height: 20),
+          ClipOval(
+              child: Image.network(
+                  'https://i.ytimg.com/vi/fAcW5O4sSRY/hq720.jpg?sqp=-oaymwEYCJUDENAFSFryq4qpAwoIARUAAIhC0AEB&rs=AOn4CLC5Rxef_pzu80w7hkFhSN62J91k-g',
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover)),
+          Text('Kate',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold)),
+          SizedBox(height: 30),
+          Text('Current Scores',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700)),
+          for (int i = 0; i < players.entries.length; i++)
+            Column(
+              children: [
+                const SizedBox(height: 10),
+                Text(
+                  players.entries.elementAt(i).key +
+                      players[players.entries.elementAt(i).key].toString(),
+                  style: TextStyle(color: Colors.white),
+                )
+              ],
+            )
 
-                Share.share('hello');
-              },
-              child: Text('DEBUG: share'))
+          // ElevatedButton(
+          //     onPressed: () {
+          //       // Navigator.push(
+          //       //     context,
+          //       //     MaterialPageRoute(
+          //       //         builder: (context) => const MyHomePage()));
+
+          //       Share.share('hello');
+          //     },
+          //     child: Text('DEBUG: share')))
         ],
       )),
     );

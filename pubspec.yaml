@@ -67,6 +67,42 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/assets-and-images/#from-packages
 
+fonts:
+  - family: Gotham
+    fonts:
+      - asset: assets/fonts/Gotham Black.ttf
+        weight: 900
+      - asset: assets/fonts/Gotham Bold Italic.ttf
+        style: italic
+        weight: 700
+      - asset: assets/fonts/Gotham Bold.ttf
+        weight: 700
+      - asset: assets/fonts/Gotham Book.ttf
+        weight: 500
+      - asset: assets/fonts/Gotham Extra Light Italic.ttf
+        style: italic
+        weight: 200
+      - asset: assets/fonts/Gotham Extra Light.ttf
+        weight: 200
+      - asset: assets/fonts/Gotham Italic.ttf
+        style: italic
+        weight: 400
+      - asset: assets/fonts/Gotham ItalicBold.ttf
+        style: italic
+        weight: 700
+      - asset: assets/fonts/Gotham Light.ttf
+        weight: 300
+      - asset: assets/fonts/Gotham Medium.ttf
+        weight: 500
+      - asset: assets/fonts/Gotham Regular.ttf
+        weight: 400
+      - asset: assets/fonts/Gotham Thin Italic.ttf
+        style: italic
+        weight: 100
+      - asset: assets/fonts/Gotham Thin.ttf
+        weight: 100
+      - asset: assets/fonts/Gotham Ultra.ttf
+        weight: 900
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
