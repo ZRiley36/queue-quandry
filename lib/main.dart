@@ -127,13 +127,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Local fields
   double _progressValue = 0.0;
-  bool buttonsDisabled = false;
-  bool button1Pressed = false;
-  bool button2Pressed = false;
-  bool button3Pressed = false;
-  bool button4Pressed = false;
   bool correctGuess = false;
   String playerName = 'Billy';
+  int guessedPlayer = -1;
+
+  List<bool> buttonsPressed = [];
 
   void _startTimer() {
     const duration = Duration(seconds: 5);
@@ -156,6 +154,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
+    for (int i = 0; i < players.entries.length; i++) {
+      buttonsPressed.add(false);
+    }
+
     // Begin the timer
     _startTimer();
   }
@@ -173,19 +175,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleButtonPressed(int buttonIndex) {
     setState(() {
-      buttonsDisabled = true;
-      if (buttonIndex == 1) {
-        button1Pressed = true;
-      } else if (buttonIndex == 2) {
-        button2Pressed = true;
-      } else if (buttonIndex == 3) {
-        button3Pressed = true;
-      } else if (buttonIndex == 4) {
-        button4Pressed = true;
+      for (int i = 0; i < buttonsPressed.length; i++) {
+        buttonsPressed[i] = false;
       }
 
-      if (buttonIndex - 1 == guiltyPlayer) {
+      buttonsPressed[buttonIndex] = true;
+
+      if (buttonIndex == guiltyPlayer) {
         correctGuess = true;
+      } else {
+        correctGuess = false;
       }
     });
   }
@@ -216,7 +215,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 2),
             Text(
-              songArtist,
+              songName,
               style: const TextStyle(
                 fontSize: 20,
                 color: Colors.white,
@@ -237,44 +236,34 @@ class _MyHomePageState extends State<MyHomePage> {
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.85,
                     child: ElevatedButton(
-                      onPressed: buttonsDisabled
-                          ? null
-                          : () => _handleButtonPressed(i),
-                      style: ButtonStyle(
-                        backgroundColor:
-                            MaterialStateProperty.resolveWith<Color>(
-                          (Set<MaterialState> states) {
-                            if (states.contains(MaterialState.pressed)) {
-                              return Colors.deepPurple.shade800;
-                            } else if (i == 1 && button1Pressed) {
-                              return Colors.deepPurple.shade800;
-                            } else if (i == 2 && button2Pressed) {
-                              return Colors.deepPurple.shade800;
-                            } else if (i == 3 && button3Pressed) {
-                              return Colors.deepPurple.shade800;
-                            } else if (i == 4 && button4Pressed) {
-                              return Colors.deepPurple.shade800;
-                            }
-                            return const Color(0xFF7000CC);
-                          },
-                        ),
-                        padding: MaterialStateProperty.all<EdgeInsets>(
-                            const EdgeInsets.only(
-                                left: 10, right: 10, top: 20, bottom: 20)),
-                        shape:
-                            MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                      ),
+                      onPressed: () {
+                        setState(() {
+                          _handleButtonPressed(i);
+                        });
+                      },
                       child: Text(
                         players.entries.elementAt(i).key,
-                        style: const TextStyle(
-                            fontSize: 22,
+                        style: TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500),
                       ),
+                      style: ButtonStyle(
+                          minimumSize: MaterialStateProperty.all(Size(200, 70)),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10))),
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith<Color>(
+                            (Set<MaterialState> states) {
+                              if (buttonsPressed[i] == true) {
+                                return Color(0xFF5e03a6);
+                              } else {
+                                return Color(0xFF7202ca);
+                              }
+                            },
+                          )),
                     ),
                   ),
                 ],
