@@ -290,6 +290,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class SecondPage extends StatelessWidget {
   final bool isCorrect;
+  final String correctChoice = 'Kate';
+  final String myName = 'Max';
 
   const SecondPage({Key? key, required this.isCorrect}) : super(key: key);
 
@@ -298,6 +300,14 @@ class SecondPage extends StatelessWidget {
     Color backgroundColor =
         isCorrect ? const Color(0xFF1cb955) : const Color(0xFFfe3356);
     String playStatus = isCorrect ? 'Correct' : 'Wrong';
+    Color boxColor = backgroundColor == const Color(0xFF1cb955)
+        ? const Color(0xFF0d943f)
+        : const Color(0xFFdb2948);
+    Color myBoxColor;
+    if (boxColor == const Color(0xFFdb2948))
+      myBoxColor = const Color(0xFFa11b32);
+    else
+      myBoxColor = const Color(0xFF096129);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -323,7 +333,7 @@ class SecondPage extends StatelessWidget {
                   width: 200,
                   height: 200,
                   fit: BoxFit.cover)),
-          Text('Kate',
+          Text(correctChoice,
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 25,
@@ -334,15 +344,55 @@ class SecondPage extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
+          SizedBox(height: 20),
           for (int i = 0; i < players.entries.length; i++)
             Column(
               children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: players.entries.elementAt(i).key == myName
+                        ? myBoxColor
+                        : boxColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left-aligned text
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            players.entries.elementAt(i).key,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Right-aligned text
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            players[players.entries.elementAt(i).key]
+                                .toString(),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 10),
-                Text(
-                  players.entries.elementAt(i).key +
-                      players[players.entries.elementAt(i).key].toString(),
-                  style: TextStyle(color: Colors.white),
-                )
               ],
             )
 
