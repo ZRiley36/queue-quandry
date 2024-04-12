@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
+import 'login.dart';
 
 const Color spotifyGreen = Color(0xFF1cb955);
 
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Gotham'),
-      home: const LobbyPage(),
+      home: const LoginPage(),
     );
   }
 }
