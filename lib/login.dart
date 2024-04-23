@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
 import 'main.dart';
 import 'credentials.dart';
+import 'package:spotify_sdk/spotify_sdk.dart';
+import 'package:uni_links/uni_links.dart';
 const scope = 'user-read-private user-read-email';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -70,6 +74,43 @@ class _LoginPageState extends State<LoginPage> {
       throw 'Could not launch $authUrl';
     }
   }
+
+  Future<void> initUniLinks() async {
+    try {
+      final initialLink = await getInitialLink();
+      handleLink(initialLink!); // Handle the initial link if the app was opened from the callback URL
+
+      // Listen for incoming links while the app is running
+      linkStream.listen((link) {
+        //Extracting data from callback URLs
+      });
+    } on PlatformException {
+      // Handle exception if UniLinks is not supported on the platform
+    }
+  }
+
+  String _callbackData = '';
+
+  void handleLink(String link) {
+    if (link != null) {
+      // Extract relevant data from the link
+      // Example: Assuming the callback URL is "myapp://callback?data=some_data"
+      final uri = Uri.parse(link);
+      final callbackData = uri.queryParameters['data'];
+      final authorizationCode = uri.queryParameters['code'];
+      final authGranted = uri.queryParameters['state'];
+      final is_callback = uri.
+
+
+      setState(() {
+        _callbackData = callbackData!;
+      });
+
+      // Perform necessary actions or update the app's state based on the extracted data
+      // Example: Trigger a function or update UI elements
+    }
+  }
+
 }
 
 
