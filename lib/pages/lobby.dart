@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:queue_quandry/pages/home.dart';
 import '../styles.dart';
 import '../main.dart';
 import 'game.dart';
@@ -22,7 +23,12 @@ class _LobbyPageState extends State<LobbyPage> {
             color: Colors.white,
           ),
           onPressed: () {
-            // Navigator.of(context).pop();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomePage(),
+              ),
+            );
           },
         ),
         title: const Text(

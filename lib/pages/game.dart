@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:queue_quandry/pages/home.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 
@@ -268,15 +269,6 @@ class _ResultPageState extends State<ResultPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => FinishPage(
-    //       playerWon: true,
-    //     ),
-    //   ),
-    // );
-
     Color backgroundColor =
         isCorrect ? const Color(0xFF1cb955) : const Color(0xFFfe3356);
     String playStatus = isCorrect ? 'Correct' : 'Wrong';
@@ -406,41 +398,306 @@ class _FinishPageState extends State<FinishPage> {
   // Remove late initialization of playerWon
   // late final bool playerWon;
 
-  final String myName = 'Player_3';
-
   @override
   void initState() {
     super.initState();
-    // Remove this line as playerWon is already initialized through widget.playerWon
-    // playerWon = widget.playerWon;
   }
 
   @override
   Widget build(BuildContext context) {
+    Color backgroundColor =
+        widget.playerWon ? const Color(0xFF1cb955) : const Color(0xFFfe3356);
+    String playStatus = widget.playerWon ? 'You Win' : 'You Lost';
+    Color boxColor = backgroundColor == const Color(0xFF1cb955)
+        ? const Color(0xFF0d943f)
+        : const Color(0xFFdb2948);
+    Color myBoxColor;
+    if (boxColor == const Color(0xFFdb2948))
+      myBoxColor = const Color(0xFFa11b32);
+    else
+      myBoxColor = const Color(0xFF096129);
+
     return Scaffold(
-      backgroundColor: spotifyGreen,
-      appBar: AppBar(
-        backgroundColor: spotifyGreen,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LobbyPage()),
-            );
-          },
-        ),
-      ),
+      backgroundColor: backgroundColor,
       body: Center(
-        child: Text(
-          widget.playerWon
-              ? 'You win'
-              : 'You lose', // Use widget.playerWon directly
-          style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(
+            height: 80,
+          ),
+          Text(
+            playStatus,
+            style: const TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 150),
+          Text('Final Scores',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700)),
+          SizedBox(height: 35),
+          for (int i = 0; i < players.entries.length; i++)
+            Column(
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: players.entries.elementAt(i).key == myName
+                        ? myBoxColor
+                        : boxColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left-aligned text
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            players.entries.elementAt(i).key,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Right-aligned text
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            players[players.entries.elementAt(i).key]
+                                .toString(),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                )
+              ],
+            ),
+          Expanded(
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              padding: EdgeInsets.only(bottom: 50),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EndPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    minimumSize: Size(150, 50) // Change button color to purple
+                    ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      fontFamily: 'Gotham'),
+                ),
+              ),
+            ),
+          ),
+        ],
+      )),
+    );
+  }
+}
+
+class EndPage extends StatefulWidget {
+  const EndPage({Key? key}) : super(key: key);
+
+  @override
+  _EndPageState createState() => _EndPageState();
+}
+
+class _EndPageState extends State<EndPage> {
+  bool _isChecked = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    _isChecked = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String albumArt =
+        "https://marketplace.canva.com/EAEdeiU-IeI/1/0/1600w/canva-purple-and-red-orange-tumblr-aesthetic-chill-acoustic-classical-lo-fi-playlist-cover-jGlDSM71rNM.jpg";
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        mainAxisAlignment:
+            MainAxisAlignment.center, // Center content vertically
+        children: <Widget>[
+          Flexible(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  SizedBox(
+                    height: 250,
+                  ),
+                  const Text(
+                    "Relive your Game",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      albumArt,
+                      height: 200,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  AnimatedSwitcher(
+                    duration: Duration(
+                        milliseconds: 200), // Adjust duration as needed
+                    child: _isChecked
+                        ? Column(
+                            key: ValueKey<bool>(_isChecked),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isChecked = !_isChecked;
+                                  });
+                                },
+                                child: Container(
+                                  key: ValueKey<bool>(_isChecked),
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white, // circle fill
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.add,
+                                      color: Colors.black,
+                                      size: 30,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: Text(
+                                  "Empty",
+                                  style: TextStyle(
+                                      color: Colors.transparent, fontSize: 15),
+                                ),
+                              )
+                            ],
+                          )
+                        : Column(
+                            key: ValueKey<bool>(_isChecked),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isChecked = !_isChecked;
+                                  });
+                                },
+                                child: Container(
+                                  key: ValueKey<bool>(_isChecked),
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.green, // circle fill
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: Text(
+                                  "Saved playlist to your profile.",
+                                  style: TextStyle(
+                                      color: Color.fromARGB(170, 201, 201, 201),
+                                      fontSize: 15),
+                                ),
+                              )
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+// Add some space between the content and the button
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                  bottom: 50), // Adjust this value as needed
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LobbyPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: spotifyGreen,
+                    minimumSize: Size(70, 50) // Change button color to purple
+                    ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      fontFamily: 'Gotham'),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
