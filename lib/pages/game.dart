@@ -583,86 +583,7 @@ class _EndPageState extends State<EndPage> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  AnimatedSwitcher(
-                    duration: Duration(
-                        milliseconds: 200), // Adjust duration as needed
-                    child: _isChecked
-                        ? Column(
-                            key: ValueKey<bool>(_isChecked),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isChecked = !_isChecked;
-                                  });
-                                },
-                                child: Container(
-                                  key: ValueKey<bool>(_isChecked),
-                                  width: 45,
-                                  height: 45,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white, // circle fill
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.add,
-                                      color: Colors.black,
-                                      size: 30,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: Text(
-                                  "Empty",
-                                  style: TextStyle(
-                                      color: Colors.transparent, fontSize: 15),
-                                ),
-                              )
-                            ],
-                          )
-                        : Column(
-                            key: ValueKey<bool>(_isChecked),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isChecked = !_isChecked;
-                                  });
-                                },
-                                child: Container(
-                                  key: ValueKey<bool>(_isChecked),
-                                  width: 45,
-                                  height: 45,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.green, // circle fill
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 30,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: Text(
-                                  "Saved playlist to your profile.",
-                                  style: TextStyle(
-                                      color: Color.fromARGB(170, 201, 201, 201),
-                                      fontSize: 15),
-                                ),
-                              )
-                            ],
-                          ),
-                  ),
+                  SavePlaylistButton(),
                 ],
               ),
             ),
@@ -699,6 +620,93 @@ class _EndPageState extends State<EndPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class SavePlaylistButton extends StatefulWidget {
+  final VoidCallback? onTap; // Callback function parameter
+
+  SavePlaylistButton({this.onTap});
+
+  @override
+  _SavePlaylistButtonState createState() => _SavePlaylistButtonState();
+}
+
+class _SavePlaylistButtonState extends State<SavePlaylistButton> {
+  bool _isChecked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: Duration(milliseconds: 200),
+      child: _isChecked
+          ? Column(
+              key: ValueKey<bool>(_isChecked),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isChecked = !_isChecked;
+                    });
+                    // Call the callback function if provided
+                    if (widget.onTap != null) {
+                      widget.onTap!();
+                    }
+                  },
+                  child: Container(
+                    key: ValueKey<bool>(_isChecked),
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              key: ValueKey<bool>(_isChecked),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isChecked = !_isChecked;
+                    });
+                    // Call the callback function if provided
+                    if (widget.onTap != null) {
+                      widget.onTap!();
+                    }
+                  },
+                  child: Container(
+                    key: ValueKey<bool>(_isChecked),
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.add,
+                        color: Colors.black,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
