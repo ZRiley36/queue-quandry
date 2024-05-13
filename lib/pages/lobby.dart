@@ -5,13 +5,26 @@ import '../main.dart';
 import 'game.dart';
 
 class LobbyPage extends StatefulWidget {
-  const LobbyPage({Key? key}) : super(key: key);
+  final int numPlayers;
+  final int songsPerPlayer;
+
+  const LobbyPage({Key? key, this.numPlayers = 2, this.songsPerPlayer = 1}) : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
 }
 
 class _LobbyPageState extends State<LobbyPage> {
+  late int _numPlayers;
+  late int _songsPerPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _numPlayers = widget.numPlayers;
+    _songsPerPlayer = widget.songsPerPlayer;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +51,7 @@ class _LobbyPageState extends State<LobbyPage> {
       ),
       backgroundColor: spotifyBlack,
       body: Padding(
-        padding: EdgeInsets.only(left: 18),
+        padding: EdgeInsets.only(left: 18, right: 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -51,62 +64,89 @@ class _LobbyPageState extends State<LobbyPage> {
                   fontWeight: FontWeight.bold),
             ),
             const Text(
-              'contribute anonymously to a playlist. try to guess who queued each song after they play.',
+              'Contribute anonymously to a playlist. Try to guess who queued each song after they play.',
               style: TextStyle(color: Colors.white),
             ),
-            Expanded(
-              child: Container(
-                alignment: Alignment.bottomCenter,
-                padding: EdgeInsets.only(bottom: 50),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => QueuePage(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF9d40e3),
-                      minimumSize:
-                          Size(150, 50) // Change button color to purple
-                      ),
-                  child: const Text(
-                    'Let\'s Play',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                        fontFamily: 'Gotham'),
+            const SizedBox(height: 30),
+            _buildDropdown(
+              'Select Number of Players',
+              _numPlayers,
+              (value) {
+                setState(() {
+                  _numPlayers = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            _buildDropdown(
+              'Select Number of Songs per Player',
+              _songsPerPlayer,
+              (value) {
+                setState(() {
+                  _songsPerPlayer = value!;
+                });
+              },
+            ),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => QueuePage(
+                      numPlayers: _numPlayers,
+                      songsPerPlayer: _songsPerPlayer,
+                    ),
                   ),
-                ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF9d40e3),
+                  minimumSize: Size(150, 50)),
+              child: const Text(
+                'Let\'s Play',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    fontFamily: 'Gotham'),
               ),
             ),
+            const SizedBox(height: 50),
           ],
         ),
       ),
     );
   }
-}
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Songs Queue',
-      theme: ThemeData.dark(),
-      home: QueuePage(),
+  DropdownButtonFormField<int> _buildDropdown(String label, int currentValue, void Function(int?)? onChanged) {
+    return DropdownButtonFormField<int>(
+      value: currentValue,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.white),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white),
+        ),
+      ),
+      dropdownColor: Colors.black,
+      style: TextStyle(color: Colors.white),
+      items: List.generate(10, (index) => index + 1)
+          .map((num) => DropdownMenuItem<int>(
+                value: num,
+                child: Text(num.toString(), style: TextStyle(color: Colors.white)),
+              ))
+          .toList(),
+      onChanged: onChanged,
     );
   }
 }
 
 class QueuePage extends StatefulWidget {
-  const QueuePage({Key? key}) : super(key: key);
+  final int numPlayers;
+  final int songsPerPlayer;
+
+  const QueuePage({Key? key, required this.numPlayers, required this.songsPerPlayer}) : super(key: key);
 
   @override
   _QueuePageState createState() => _QueuePageState();
@@ -145,8 +185,7 @@ class _QueuePageState extends State<QueuePage> {
           children: <Widget>[
             TextField(
               controller: _controller,
-              style:
-                  TextStyle(color: Colors.black, fontWeight: FontWeight.w400),
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w400),
               onChanged: (value) {
                 setState(() {
                   isSearching = value.isNotEmpty;
@@ -155,8 +194,7 @@ class _QueuePageState extends State<QueuePage> {
                 print('Searching for song: $searchTerm');
               },
               decoration: InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 border: OutlineInputBorder(
                   borderSide: BorderSide.none,
                   borderRadius: BorderRadius.all(
@@ -196,7 +234,7 @@ class _QueuePageState extends State<QueuePage> {
                       ),
                     ),
                   ),
-            isSearching ? Container() : SizedBox(height: 30), // Adjust spacing
+            isSearching ? Container() : SizedBox(height: 30),
             isSearching
                 ? Container()
                 : Expanded(
@@ -213,12 +251,10 @@ class _QueuePageState extends State<QueuePage> {
                       },
                     ),
                   ),
-            isSearching ? Container() : SizedBox(height: 20), // Adjust spacing
+            isSearching ? Container() : SizedBox(height: 20),
             Center(
               child: Text(
-                isSearching
-                    ? "" // Hide songs added count during search
-                    : "Songs added: " + songsAdded.toString(),
+                isSearching ? "" : "Songs added: " + songsAdded.toString(),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 21,
@@ -226,7 +262,6 @@ class _QueuePageState extends State<QueuePage> {
                 ),
               ),
             ),
-
             isSearching
                 ? Container()
                 : Center(
@@ -244,15 +279,13 @@ class _QueuePageState extends State<QueuePage> {
                             color: Colors.black, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30.0),
                         ),
                       ),
                     ),
                   ),
-
             SizedBox(height: 20),
           ],
         ),

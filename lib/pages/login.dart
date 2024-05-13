@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
 import '../credentials.dart';
 import 'lobby.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
 
 const scope = 'user-read-private user-read-email';
 
@@ -100,10 +101,17 @@ class _LoginPageState extends State<LoginPage> {
           'show_dialog': 'true'
         });
 
-    if (await canLaunchUrl(authUrl)) {
-      await launchUrl(authUrl);
-    } else {
-      throw 'Could not launch $authUrl';
-    }
+    final result = await FlutterWebAuth.authenticate(
+        url: authUrl.toString(), callbackUrlScheme: "playlistpursuit");
+
+    final code = Uri.parse(result).queryParameters['code'];
+
+    print("Your code is: " + result.toString());
+
+    // if (await canLaunchUrl(authUrl)) {
+    //   await launchUrl(authUrl);
+    // } else {
+    //   throw 'Could not launch $authUrl';
+    // }
   }
 }
