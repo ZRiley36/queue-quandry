@@ -37,8 +37,7 @@ dependencies:
   spotify_sdk: ^2.0.0
   url_launcher: ^6.0.2
   http: ^0.13.3
-  uni_links: ^0.5.1
-  app_links: ^4.0.1
+  firebase_auth: ^4.17.8
 
 dev_dependencies:
   flutter_test:
