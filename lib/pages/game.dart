@@ -5,12 +5,6 @@ import 'package:queue_quandry/pages/home.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 
-Map<String, int> players = {
-  'Player_1': 0,
-  'Player_2': 0,
-  'Player_3': 0,
-};
-
 final String myName = 'Player_3';
 final int winningScore = 10;
 
@@ -174,7 +168,7 @@ class _GuessingPageState extends State<GuessingPage> {
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
-                            fontWeight: FontWeight.w500),
+                            fontWeight: FontWeight.bold),
                       ),
                       style: ButtonStyle(
                           minimumSize: MaterialStateProperty.all(Size(200, 70)),

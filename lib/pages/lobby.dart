@@ -7,6 +7,12 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
 
+Map<String, int> players = {
+  'Player_1': 0,
+  'Player_2': 0,
+  'Player_3': 0,
+};
+
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
@@ -27,6 +33,10 @@ class _LobbyPageState extends State<LobbyPage> {
     super.initState();
     _numPlayers = widget.numPlayers;
     _songsPerPlayer = widget.songsPerPlayer;
+  }
+
+  void removePlayer() {
+    setState(() {});
   }
 
   @override
@@ -83,17 +93,62 @@ class _LobbyPageState extends State<LobbyPage> {
             SizedBox(
               height: 5,
             ),
-            SizedBox(
-              height: 55,
-              child: PlayerListing(),
+            Row(
+              children: [
+                SizedBox(
+                  height: 320,
+                  width: 390,
+                  child: ListView.builder(
+                    itemCount: players.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final entry = players.entries.toList()[index];
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: PlayerListing(
+                          name: entry.key,
+                          removePlayer: removePlayer,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  _share();
+                },
+                child: SizedBox(
+                  width: 78,
+                  child: Row(
+                    children: [
+                      Text(
+                        "Invite",
+                        style: TextStyle(color: Colors.black, fontSize: 18),
+                      ),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      Container(
+                        height: 30,
+                        child: Icon(
+                          Icons.ios_share_outlined,
+                          color: Colors.black,
+                        ),
+                      )
+                    ],
+                    mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                )),
+            const SizedBox(
+              height: 20,
+            ),
             const Text(
               "Songs Per Player",
               style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18),
             ),
             const SizedBox(
               height: 5,
@@ -110,7 +165,9 @@ class _LobbyPageState extends State<LobbyPage> {
                 },
               ),
             ),
-            const Spacer(),
+            SizedBox(
+              height: 50,
+            ),
             Center(
               child: Column(
                 children: [
@@ -130,7 +187,7 @@ class _LobbyPageState extends State<LobbyPage> {
                         backgroundColor: Color(0xFF9d40e3),
                         minimumSize: Size(150, 50)),
                     child: const Text(
-                      'Let\'s Play',
+                      'Continue',
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -138,13 +195,6 @@ class _LobbyPageState extends State<LobbyPage> {
                           fontFamily: 'Gotham'),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      _share();
-                    },
-                    child: Text('Share Link'),
-                  )
                 ],
               ),
             ),
@@ -219,7 +269,7 @@ class _QueuePageState extends State<QueuePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: spotifyBlack,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
@@ -234,7 +284,7 @@ class _QueuePageState extends State<QueuePage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: spotifyBlack,
       body: Container(
         padding: EdgeInsets.symmetric(vertical: 20, horizontal: 25),
         child: Column(
@@ -472,16 +522,14 @@ class PlayerListing extends StatefulWidget {
   final String imageUrl;
   final String name;
   final IconData iconData;
-  final Function()? onIncrement;
-  final Function()? onDecrement;
+  final Function()? removePlayer;
 
   PlayerListing({
     this.imageUrl =
-        "https://images.genius.com/69c8990d3a6b135efe69859e18287d1d.1000x1000x1.jpg",
-    this.name = "Billy",
-    this.iconData = Icons.favorite,
-    this.onIncrement,
-    this.onDecrement,
+        "https://i.scdn.co/image/ab6761610000e5eba1b1a48354e9a91fef58f651",
+    this.name = "DefaultName",
+    this.iconData = Icons.remove_circle,
+    this.removePlayer,
   });
 
   @override
@@ -489,8 +537,6 @@ class PlayerListing extends StatefulWidget {
 }
 
 class _PlayerListingState extends State<PlayerListing> {
-  bool isChecked = false;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -502,41 +548,31 @@ class _PlayerListingState extends State<PlayerListing> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+          ClipOval(
             child: Image.network(
               widget.imageUrl,
-              width: 50,
-              height: 50,
+              width: 35,
+              height: 35,
               fit: BoxFit.cover,
             ),
           ),
           SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+            child: Text(
+              widget.name,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           SizedBox(width: 10),
           GestureDetector(
             onTap: () {
               setState(() {
-                isChecked = !isChecked;
-                if (isChecked) {
-                  widget.onIncrement?.call();
-                } else {
-                  widget.onDecrement?.call();
-                }
+                players.remove(widget.name);
+                widget.removePlayer?.call();
               });
             },
             child: Container(
@@ -544,12 +580,12 @@ class _PlayerListingState extends State<PlayerListing> {
               height: 30,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isChecked ? Colors.green : Colors.white,
+                color: Colors.transparent,
               ),
               child: Icon(
-                isChecked ? Icons.check : Icons.add,
-                color: isChecked ? Colors.white : Colors.black,
-                size: 20,
+                Icons.remove_circle_outline_rounded,
+                color: Colors.white,
+                size: 30,
               ),
             ),
           ),
