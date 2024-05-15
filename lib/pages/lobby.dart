@@ -3,12 +3,16 @@ import 'package:queue_quandry/pages/home.dart';
 import '../styles.dart';
 import '../main.dart';
 import 'game.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:async';
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
 
-  const LobbyPage({Key? key, this.numPlayers = 2, this.songsPerPlayer = 1}) : super(key: key);
+  const LobbyPage({Key? key, this.numPlayers = 2, this.songsPerPlayer = 1})
+      : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
@@ -53,7 +57,7 @@ class _LobbyPageState extends State<LobbyPage> {
       body: Padding(
         padding: EdgeInsets.only(left: 18, right: 18),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
             const Text(
@@ -68,85 +72,139 @@ class _LobbyPageState extends State<LobbyPage> {
               style: TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 30),
-            _buildDropdown(
-              'Select Number of Players',
-              _numPlayers,
-              (value) {
-                setState(() {
-                  _numPlayers = value!;
-                });
-              },
+            const Text(
+              'Manage players',
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                  color: spotifyGreen,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 25),
+            ),
+            SizedBox(
+              height: 5,
+            ),
+            SizedBox(
+              height: 55,
+              child: PlayerListing(),
             ),
             const SizedBox(height: 20),
-            _buildDropdown(
-              'Select Number of Songs per Player',
-              _songsPerPlayer,
-              (value) {
-                setState(() {
-                  _songsPerPlayer = value!;
-                });
-              },
+            const Text(
+              "Songs Per Player",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16),
             ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => QueuePage(
-                      numPlayers: _numPlayers,
-                      songsPerPlayer: _songsPerPlayer,
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF9d40e3),
-                  minimumSize: Size(150, 50)),
-              child: const Text(
-                'Let\'s Play',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    fontFamily: 'Gotham'),
+            const SizedBox(
+              height: 5,
+            ),
+            Padding(
+              padding: EdgeInsets.only(right: 150),
+              child: _buildDropdown(
+                'Songs Per Player',
+                _songsPerPlayer,
+                (value) {
+                  setState(() {
+                    _songsPerPlayer = value!;
+                  });
+                },
               ),
             ),
-            const SizedBox(height: 50),
+            const Spacer(),
+            Center(
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QueuePage(
+                            numPlayers: _numPlayers,
+                            songsPerPlayer: _songsPerPlayer,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF9d40e3),
+                        minimumSize: Size(150, 50)),
+                    child: const Text(
+                      'Let\'s Play',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          fontFamily: 'Gotham'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      _share();
+                    },
+                    child: Text('Share Link'),
+                  )
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  DropdownButtonFormField<int> _buildDropdown(String label, int currentValue, void Function(int?)? onChanged) {
-    return DropdownButtonFormField<int>(
-      value: currentValue,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
-        ),
-      ),
-      dropdownColor: Colors.black,
-      style: TextStyle(color: Colors.white),
-      items: List.generate(10, (index) => index + 1)
-          .map((num) => DropdownMenuItem<int>(
-                value: num,
-                child: Text(num.toString(), style: TextStyle(color: Colors.white)),
-              ))
-          .toList(),
-      onChanged: onChanged,
-    );
+  void _share() async {
+    final result = await Share.share('check out my website https://example.com',
+        subject: "Invite to Game");
   }
+}
+
+DropdownButtonFormField<int> _buildDropdown(
+    String label, int currentValue, void Function(int?)? onChanged) {
+  return DropdownButtonFormField<int>(
+    decoration: InputDecoration(
+      fillColor: Color.fromARGB(255, 41, 41, 41),
+      filled: true,
+      contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+      border: OutlineInputBorder(
+          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.all(
+            Radius.circular(10.0),
+          )),
+    ),
+    value: currentValue,
+    dropdownColor: Color.fromARGB(255, 41, 41, 41),
+    focusColor: Color.fromARGB(255, 41, 41, 41),
+    iconEnabledColor: Color.fromARGB(255, 41, 41, 41),
+    style: TextStyle(color: const Color.fromRGBO(255, 255, 255, 1)),
+    borderRadius: BorderRadius.all(Radius.circular(8)),
+    items: List.generate(10, (index) => index + 1)
+        .map((num) => DropdownMenuItem<int>(
+              value: num,
+              child: Padding(
+                padding: EdgeInsets.only(
+                    left: 18), // Adjust the right padding as needed
+                child: Text(num.toString(),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16)),
+              ),
+            ))
+        .toList(),
+    onChanged: onChanged,
+    isExpanded: true,
+  );
 }
 
 class QueuePage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
 
-  const QueuePage({Key? key, required this.numPlayers, required this.songsPerPlayer}) : super(key: key);
+  const QueuePage(
+      {Key? key, required this.numPlayers, required this.songsPerPlayer})
+      : super(key: key);
 
   @override
   _QueuePageState createState() => _QueuePageState();
@@ -185,7 +243,8 @@ class _QueuePageState extends State<QueuePage> {
           children: <Widget>[
             TextField(
               controller: _controller,
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w400),
+              style:
+                  TextStyle(color: Colors.black, fontWeight: FontWeight.w400),
               onChanged: (value) {
                 setState(() {
                   isSearching = value.isNotEmpty;
@@ -194,7 +253,8 @@ class _QueuePageState extends State<QueuePage> {
                 print('Searching for song: $searchTerm');
               },
               decoration: InputDecoration(
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                contentPadding:
+                    EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 border: OutlineInputBorder(
                   borderSide: BorderSide.none,
                   borderRadius: BorderRadius.all(
@@ -243,7 +303,7 @@ class _QueuePageState extends State<QueuePage> {
                       itemBuilder: (BuildContext context, int index) {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 8),
-                          child: MyReusableElement(
+                          child: SongListing(
                             onIncrement: incrementSongsAdded,
                             onDecrement: decrementSongsAdded,
                           ),
@@ -279,7 +339,8 @@ class _QueuePageState extends State<QueuePage> {
                             color: Colors.black, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30.0),
                         ),
@@ -306,7 +367,7 @@ class _QueuePageState extends State<QueuePage> {
   }
 }
 
-class MyReusableElement extends StatefulWidget {
+class SongListing extends StatefulWidget {
   final String imageUrl;
   final String name;
   final IconData iconData;
@@ -314,7 +375,7 @@ class MyReusableElement extends StatefulWidget {
   final Function()? onIncrement;
   final Function()? onDecrement;
 
-  MyReusableElement({
+  SongListing({
     this.imageUrl =
         "https://images.genius.com/69c8990d3a6b135efe69859e18287d1d.1000x1000x1.jpg",
     this.name = "What Once Was",
@@ -325,10 +386,10 @@ class MyReusableElement extends StatefulWidget {
   });
 
   @override
-  _MyReusableElementState createState() => _MyReusableElementState();
+  _SongListingState createState() => _SongListingState();
 }
 
-class _MyReusableElementState extends State<MyReusableElement> {
+class _SongListingState extends State<SongListing> {
   bool isChecked = false;
 
   @override
@@ -369,6 +430,98 @@ class _MyReusableElementState extends State<MyReusableElement> {
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.6),
                     fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                isChecked = !isChecked;
+                if (isChecked) {
+                  widget.onIncrement?.call();
+                } else {
+                  widget.onDecrement?.call();
+                }
+              });
+            },
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isChecked ? Colors.green : Colors.white,
+              ),
+              child: Icon(
+                isChecked ? Icons.check : Icons.add,
+                color: isChecked ? Colors.white : Colors.black,
+                size: 20,
+              ),
+            ),
+          ),
+          SizedBox(width: 3),
+        ],
+      ),
+    );
+  }
+}
+
+class PlayerListing extends StatefulWidget {
+  final String imageUrl;
+  final String name;
+  final IconData iconData;
+  final Function()? onIncrement;
+  final Function()? onDecrement;
+
+  PlayerListing({
+    this.imageUrl =
+        "https://images.genius.com/69c8990d3a6b135efe69859e18287d1d.1000x1000x1.jpg",
+    this.name = "Billy",
+    this.iconData = Icons.favorite,
+    this.onIncrement,
+    this.onDecrement,
+  });
+
+  @override
+  _PlayerListingState createState() => _PlayerListingState();
+}
+
+class _PlayerListingState extends State<PlayerListing> {
+  bool isChecked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        color: Color.fromARGB(255, 41, 41, 41),
+      ),
+      padding: EdgeInsets.all(10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Image.network(
+              widget.imageUrl,
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.name,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
