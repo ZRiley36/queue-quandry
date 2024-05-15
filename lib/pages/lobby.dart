@@ -265,6 +265,13 @@ class _QueuePageState extends State<QueuePage> {
   bool isSearching = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    songsAdded = 0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -343,7 +350,9 @@ class _QueuePageState extends State<QueuePage> {
                       ),
                     ),
                   ),
-            isSearching ? Container() : SizedBox(height: 30),
+            isSearching
+                ? Container()
+                : SizedBox(height: MediaQuery.of(context).size.height * 0.005),
             isSearching
                 ? Container()
                 : Expanded(
@@ -363,7 +372,11 @@ class _QueuePageState extends State<QueuePage> {
             isSearching ? Container() : SizedBox(height: 20),
             Center(
               child: Text(
-                isSearching ? "" : "Songs added: " + songsAdded.toString(),
+                isSearching
+                    ? ""
+                    : "Queue " +
+                        (songsPerPlayer - songsAdded).toString() +
+                        " more songs",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 21,
