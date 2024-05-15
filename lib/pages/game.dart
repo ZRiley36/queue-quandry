@@ -6,6 +6,7 @@ import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 
 final int winningScore = 10;
+bool musicPlaying = false;
 
 class GuessingPage extends StatefulWidget {
   const GuessingPage({Key? key}) : super(key: key);
@@ -20,6 +21,7 @@ class _GuessingPageState extends State<GuessingPage> {
   String songArtist = "Jimi Hendrix";
   String albumArt =
       'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg';
+  int songLength = 5;
 
   // Fields (to be mutated by our backend)
   int guiltyPlayer = 0;
@@ -38,6 +40,9 @@ class _GuessingPageState extends State<GuessingPage> {
     for (int i = 0; i < players.entries.length; i++) {
       buttonsPressed.add(false);
     }
+
+    // TODO start music playback here
+    musicPlaying = true;
   }
 
   void _navigateToNextPage() {
@@ -87,6 +92,12 @@ class _GuessingPageState extends State<GuessingPage> {
       } else {
         correctGuess = false;
       }
+    });
+  }
+
+  void _pausePlayback() {
+    setState(() {
+      musicPlaying = !musicPlaying;
     });
   }
 
@@ -190,11 +201,28 @@ class _GuessingPageState extends State<GuessingPage> {
                         TimerBar(
                           backgroundColor: Color(0xFF9d40e3),
                           progressColor: Colors.white,
-                          duration: Duration(seconds: 5),
+                          period: Duration(seconds: songLength),
                           onComplete: _navigateToNextPage,
                         ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _pausePlayback();
+                            });
+                          },
+                          icon: musicPlaying
+                              ? Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 80,
+                                )
+                              : Icon(Icons.pause_rounded,
+                                  color: Colors.white, size: 80),
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                        ),
                         SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.1)
+                            height: MediaQuery.of(context).size.height * 0.05)
                       ],
                       mainAxisAlignment: MainAxisAlignment.end,
                     )))
@@ -206,18 +234,17 @@ class _GuessingPageState extends State<GuessingPage> {
 }
 
 class TimerBar extends StatefulWidget {
-  // Callback function parameter
-
   final Color backgroundColor;
   final Color progressColor;
-  final Duration duration;
+  final Duration period;
   final Function()? onComplete;
 
-  TimerBar(
-      {required this.backgroundColor,
-      required this.progressColor,
-      required this.duration,
-      this.onComplete});
+  TimerBar({
+    required this.backgroundColor,
+    required this.progressColor,
+    required this.period,
+    this.onComplete,
+  });
 
   @override
   _TimerBarState createState() => _TimerBarState();
@@ -225,17 +252,23 @@ class TimerBar extends StatefulWidget {
 
 class _TimerBarState extends State<TimerBar> {
   double _progressValue = 0.0;
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
 
   void _startTimer() {
-    Duration duration = widget.duration;
-    const steps = 500; // Number of steps for smoother animation
+    Duration duration = widget.period;
+    const steps = 500;
     final stepDuration = duration ~/ steps;
     final increment = 1 / steps.toDouble();
 
-    Timer.periodic(stepDuration, (Timer timer) {
+    _timer = Timer.periodic(stepDuration, (Timer timer) {
+      if (musicPlaying == false) return;
+
       setState(() {
         _progressValue += increment;
+        _elapsed += stepDuration;
       });
+
       if (_progressValue >= 1.0) {
         timer.cancel();
         widget.onComplete?.call();
@@ -247,6 +280,12 @@ class _TimerBarState extends State<TimerBar> {
   void initState() {
     super.initState();
     _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -403,7 +442,7 @@ class _ResultPageState extends State<ResultPage> {
                     TimerBar(
                       backgroundColor: Color.fromARGB(255, 131, 0, 0),
                       progressColor: Colors.white,
-                      duration: Duration(seconds: 5),
+                      period: Duration(seconds: 5),
                       onComplete: _navigateToNextPage,
                     ),
                     SizedBox(height: MediaQuery.of(context).size.height * 0.1)
