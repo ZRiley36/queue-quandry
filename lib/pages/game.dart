@@ -5,7 +5,7 @@ import 'package:queue_quandry/pages/home.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 
-final String myName = 'Player_3';
+
 final int winningScore = 10;
 
 class GuessingPage extends StatefulWidget {
@@ -117,92 +117,113 @@ class _GuessingPageState extends State<GuessingPage> {
       backgroundColor: const Color(0xFF8300e7),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'Who queued it?',
-              style: TextStyle(
-                fontSize: 28,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 15),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                albumArt,
-                height: 200,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              songName,
-              style: const TextStyle(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(songArtist,
-                style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.normal)),
-            const SizedBox(height: 20),
-            for (int i = 0; i < players.entries.length; i++)
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  SizedBox(height: 10), // Add vertical space between buttons
+            Container(
+              alignment: Alignment.topCenter,
+              child: Column(
+                children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.85,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _handleButtonPressed(i);
-                        });
-                      },
-                      child: Text(
-                        players.entries.elementAt(i).key,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      style: ButtonStyle(
-                          minimumSize: MaterialStateProperty.all(Size(200, 70)),
-                          shape:
-                              MaterialStateProperty.all<RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                          backgroundColor:
-                              MaterialStateProperty.resolveWith<Color>(
-                            (Set<MaterialState> states) {
-                              if (buttonsPressed[i] == true) {
-                                return Color(0xFF5e03a6);
-                              } else {
-                                return Color(0xFF7202ca);
-                              }
-                            },
-                          )),
+                    height: MediaQuery.of(context).size.height * 0.1,
+                  ),
+                  const Text(
+                    'Who queued it?',
+                    style: TextStyle(
+                      fontSize: 28,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 15),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      albumArt,
+                      height: 200,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    songName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(songArtist,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.normal)),
+                  const SizedBox(height: 20),
+                  for (int i = 0; i < players.entries.length; i++)
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          SizedBox(
+                              height: 10), // Add vertical space between buttons
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.85,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _handleButtonPressed(i);
+                                });
+                              },
+                              child: Text(
+                                players.entries.elementAt(i).key,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              style: ButtonStyle(
+                                  minimumSize:
+                                      MaterialStateProperty.all(Size(200, 70)),
+                                  shape: MaterialStateProperty.all<
+                                          RoundedRectangleBorder>(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10))),
+                                  backgroundColor:
+                                      MaterialStateProperty.resolveWith<Color>(
+                                    (Set<MaterialState> states) {
+                                      if (buttonsPressed[i] == true) {
+                                        return Color(0xFF5e03a6);
+                                      } else {
+                                        return Color(0xFF7202ca);
+                                      }
+                                    },
+                                  )),
+                            ),
+                          ),
+                        ]),
                 ],
               ),
-            const SizedBox(height: 30),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                height: 6,
-                width: MediaQuery.of(context).size.width * 0.6,
-                child: LinearProgressIndicator(
-                  backgroundColor: Color(0xFF9d40e3),
-                  value: _progressValue,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            )
+            ),
+            Expanded(
+                child: Container(
+                    alignment: Alignment.bottomCenter,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 6,
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            child: LinearProgressIndicator(
+                              backgroundColor: Color(0xFF9d40e3),
+                              value: _progressValue,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.1)
+                      ],
+                      mainAxisAlignment: MainAxisAlignment.end,
+                    )))
           ],
         ),
       ),

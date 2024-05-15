@@ -11,7 +11,10 @@ Map<String, int> players = {
   'Player_1': 0,
   'Player_2': 0,
   'Player_3': 0,
+  'Me': 0,
 };
+
+final String myName = 'Me';
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
@@ -106,6 +109,7 @@ class _LobbyPageState extends State<LobbyPage> {
                         child: PlayerListing(
                           name: entry.key,
                           removePlayer: removePlayer,
+                          enableKicking: entry.key != myName,
                         ),
                       );
                     },
@@ -518,6 +522,7 @@ class PlayerListing extends StatefulWidget {
   final String name;
   final IconData iconData;
   final Function()? removePlayer;
+  final bool enableKicking;
 
   PlayerListing({
     this.imageUrl =
@@ -525,6 +530,7 @@ class PlayerListing extends StatefulWidget {
     this.name = "DefaultName",
     this.iconData = Icons.remove_circle,
     this.removePlayer,
+    this.enableKicking = true,
   });
 
   @override
@@ -562,27 +568,32 @@ class _PlayerListingState extends State<PlayerListing> {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                players.remove(widget.name);
-                widget.removePlayer?.call();
-              });
-            },
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.transparent,
-              ),
-              child: Icon(
-                Icons.remove_circle_outline_rounded,
-                color: Colors.white,
-                size: 30,
-              ),
-            ),
-          ),
+
+          // Enable the kicking option if it's allowed for the player
+
+          widget.enableKicking
+              ? GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      players.remove(widget.name);
+                      widget.removePlayer?.call();
+                    });
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.transparent,
+                    ),
+                    child: Icon(
+                      Icons.remove_circle_outline_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                )
+              : SizedBox.shrink()
         ],
       ),
     );
