@@ -69,7 +69,6 @@ class _LobbyPageState extends State<LobbyPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 30),
             const Text(
               'Queue Quandary',
               style: TextStyle(
@@ -96,8 +95,8 @@ class _LobbyPageState extends State<LobbyPage> {
             Row(
               children: [
                 SizedBox(
-                  height: 320,
-                  width: 390,
+                  height: MediaQuery.of(context).size.height * 0.3,
+                  width: MediaQuery.of(context).size.width * 0.9,
                   child: ListView.builder(
                     itemCount: players.length,
                     itemBuilder: (BuildContext context, int index) {
@@ -119,7 +118,7 @@ class _LobbyPageState extends State<LobbyPage> {
                   _share();
                 },
                 child: SizedBox(
-                  width: 78,
+                  width: MediaQuery.of(context).size.width * 0.25,
                   child: Row(
                     children: [
                       Text(
@@ -140,9 +139,7 @@ class _LobbyPageState extends State<LobbyPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                   ),
                 )),
-            const SizedBox(
-              height: 20,
-            ),
+            const Spacer(),
             const Text(
               "Songs Per Player",
               style: TextStyle(
@@ -150,11 +147,9 @@ class _LobbyPageState extends State<LobbyPage> {
                   fontWeight: FontWeight.w600,
                   fontSize: 18),
             ),
-            const SizedBox(
-              height: 5,
-            ),
             Padding(
-              padding: EdgeInsets.only(right: 150),
+              padding: EdgeInsets.only(
+                  top: 5, right: MediaQuery.of(context).size.width * 0.7),
               child: _buildDropdown(
                 'Songs Per Player',
                 _songsPerPlayer,
@@ -165,11 +160,10 @@ class _LobbyPageState extends State<LobbyPage> {
                 },
               ),
             ),
-            SizedBox(
-              height: 50,
-            ),
+            Spacer(),
             Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton(
                     onPressed: () {
@@ -198,6 +192,7 @@ class _LobbyPageState extends State<LobbyPage> {
                 ],
               ),
             ),
+            Spacer()
           ],
         ),
       ),
@@ -567,7 +562,6 @@ class _PlayerListingState extends State<PlayerListing> {
               ),
             ),
           ),
-          SizedBox(width: 10),
           GestureDetector(
             onTap: () {
               setState(() {
@@ -589,7 +583,6 @@ class _PlayerListingState extends State<PlayerListing> {
               ),
             ),
           ),
-          SizedBox(width: 3),
         ],
       ),
     );
