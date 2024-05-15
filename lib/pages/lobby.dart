@@ -14,6 +14,9 @@ Map<String, int> players = {
   'Me': 0,
 };
 
+int songsPerPlayer = 3;
+int songsAdded = 0;
+
 final String myName = 'Me';
 
 class LobbyPage extends StatefulWidget {
@@ -29,13 +32,11 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   late int _numPlayers;
-  late int _songsPerPlayer;
 
   @override
   void initState() {
     super.initState();
     _numPlayers = widget.numPlayers;
-    _songsPerPlayer = widget.songsPerPlayer;
   }
 
   void removePlayer() {
@@ -60,10 +61,6 @@ class _LobbyPageState extends State<LobbyPage> {
               ),
             );
           },
-        ),
-        title: const Text(
-          'Create Lobby',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       backgroundColor: spotifyBlack,
@@ -156,10 +153,10 @@ class _LobbyPageState extends State<LobbyPage> {
                   top: 5, right: MediaQuery.of(context).size.width * 0.7),
               child: _buildDropdown(
                 'Songs Per Player',
-                _songsPerPlayer,
+                songsPerPlayer,
                 (value) {
                   setState(() {
-                    _songsPerPlayer = value!;
+                    songsPerPlayer = value!;
                   });
                 },
               ),
@@ -176,7 +173,7 @@ class _LobbyPageState extends State<LobbyPage> {
                         MaterialPageRoute(
                           builder: (context) => QueuePage(
                             numPlayers: _numPlayers,
-                            songsPerPlayer: _songsPerPlayer,
+                            songsPerPlayer: songsPerPlayer,
                           ),
                         ),
                       );
@@ -261,7 +258,7 @@ class QueuePage extends StatefulWidget {
 
 class _QueuePageState extends State<QueuePage> {
   TextEditingController _controller = TextEditingController();
-  int songsAdded = 0;
+
   bool isSearching = false;
 
   @override
@@ -501,6 +498,31 @@ class _SongListingState extends State<SongListing> {
           GestureDetector(
             onTap: () {
               setState(() {
+                if (songsAdded + 1 > songsPerPlayer && isChecked == false) {
+                  showCupertinoDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CupertinoAlertDialog(
+                        title: Text("Queue Limit Reached"),
+                        content: Text(
+                            "You can't add more than $songsPerPlayer songs."),
+                        actions: <Widget>[
+                          CupertinoDialogAction(
+                            child: Text(
+                              "OK",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  return;
+                }
+
                 isChecked = !isChecked;
                 if (isChecked) {
                   widget.onIncrement?.call();
