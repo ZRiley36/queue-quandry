@@ -5,7 +5,6 @@ import 'package:queue_quandry/pages/home.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 
-
 final int winningScore = 10;
 
 class GuessingPage extends StatefulWidget {
@@ -32,23 +31,6 @@ class _GuessingPageState extends State<GuessingPage> {
 
   List<bool> buttonsPressed = [];
 
-  void _startTimer() {
-    const duration = Duration(seconds: 5);
-    const steps = 500; // Number of steps for smoother animation
-    final stepDuration = duration ~/ steps;
-    final increment = 1 / steps.toDouble();
-
-    Timer.periodic(stepDuration, (Timer timer) {
-      setState(() {
-        _progressValue += increment;
-      });
-      if (_progressValue >= 1.0) {
-        timer.cancel();
-        _navigateToNextPage();
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
@@ -56,9 +38,6 @@ class _GuessingPageState extends State<GuessingPage> {
     for (int i = 0; i < players.entries.length; i++) {
       buttonsPressed.add(false);
     }
-
-    // Begin the timer
-    _startTimer();
   }
 
   void _navigateToNextPage() {
@@ -157,47 +136,49 @@ class _GuessingPageState extends State<GuessingPage> {
                           fontWeight: FontWeight.normal)),
                   const SizedBox(height: 20),
                   for (int i = 0; i < players.entries.length; i++)
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          SizedBox(
-                              height: 10), // Add vertical space between buttons
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.85,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _handleButtonPressed(i);
-                                });
-                              },
-                              child: Text(
-                                players.entries.elementAt(i).key,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold),
+                    if (players.entries.elementAt(i).key != myName)
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            SizedBox(
+                                height:
+                                    10), // Add vertical space between buttons
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.85,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _handleButtonPressed(i);
+                                  });
+                                },
+                                child: Text(
+                                  players.entries.elementAt(i).key,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                style: ButtonStyle(
+                                    minimumSize: MaterialStateProperty.all(
+                                        Size(200, 70)),
+                                    shape: MaterialStateProperty.all<
+                                            RoundedRectangleBorder>(
+                                        RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10))),
+                                    backgroundColor: MaterialStateProperty
+                                        .resolveWith<Color>(
+                                      (Set<MaterialState> states) {
+                                        if (buttonsPressed[i] == true) {
+                                          return Color(0xFF5e03a6);
+                                        } else {
+                                          return Color(0xFF7202ca);
+                                        }
+                                      },
+                                    )),
                               ),
-                              style: ButtonStyle(
-                                  minimumSize:
-                                      MaterialStateProperty.all(Size(200, 70)),
-                                  shape: MaterialStateProperty.all<
-                                          RoundedRectangleBorder>(
-                                      RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10))),
-                                  backgroundColor:
-                                      MaterialStateProperty.resolveWith<Color>(
-                                    (Set<MaterialState> states) {
-                                      if (buttonsPressed[i] == true) {
-                                        return Color(0xFF5e03a6);
-                                      } else {
-                                        return Color(0xFF7202ca);
-                                      }
-                                    },
-                                  )),
                             ),
-                          ),
-                        ]),
+                          ]),
                 ],
               ),
             ),
@@ -206,18 +187,11 @@ class _GuessingPageState extends State<GuessingPage> {
                     alignment: Alignment.bottomCenter,
                     child: Column(
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            height: 6,
-                            width: MediaQuery.of(context).size.width * 0.6,
-                            child: LinearProgressIndicator(
-                              backgroundColor: Color(0xFF9d40e3),
-                              value: _progressValue,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          ),
+                        TimerBar(
+                          backgroundColor: Color(0xFF9d40e3),
+                          progressColor: Colors.white,
+                          duration: Duration(seconds: 5),
+                          onComplete: _navigateToNextPage,
                         ),
                         SizedBox(
                             height: MediaQuery.of(context).size.height * 0.1)
@@ -225,6 +199,67 @@ class _GuessingPageState extends State<GuessingPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                     )))
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class TimerBar extends StatefulWidget {
+  // Callback function parameter
+
+  final Color backgroundColor;
+  final Color progressColor;
+  final Duration duration;
+  final Function()? onComplete;
+
+  TimerBar(
+      {required this.backgroundColor,
+      required this.progressColor,
+      required this.duration,
+      this.onComplete});
+
+  @override
+  _TimerBarState createState() => _TimerBarState();
+}
+
+class _TimerBarState extends State<TimerBar> {
+  double _progressValue = 0.0;
+
+  void _startTimer() {
+    Duration duration = widget.duration;
+    const steps = 500; // Number of steps for smoother animation
+    final stepDuration = duration ~/ steps;
+    final increment = 1 / steps.toDouble();
+
+    Timer.periodic(stepDuration, (Timer timer) {
+      setState(() {
+        _progressValue += increment;
+      });
+      if (_progressValue >= 1.0) {
+        timer.cancel();
+        widget.onComplete?.call();
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 6,
+        width: MediaQuery.of(context).size.width * 0.6,
+        child: LinearProgressIndicator(
+          backgroundColor: widget.backgroundColor,
+          value: _progressValue,
+          valueColor: AlwaysStoppedAnimation<Color>(widget.progressColor),
         ),
       ),
     );
@@ -245,32 +280,10 @@ class _ResultPageState extends State<ResultPage> {
 
   bool playerWon = false;
 
-  double _progressValue = 0.0;
-
-  void _startTimer() {
-    const duration = Duration(seconds: 10);
-    const steps = 500;
-    final stepDuration = duration ~/ steps;
-    final increment = 1 / steps.toDouble();
-
-    Timer.periodic(stepDuration, (Timer timer) {
-      setState(() {
-        _progressValue += increment;
-      });
-      if (_progressValue >= 1.0) {
-        timer.cancel();
-        _navigateToNextPage();
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     isCorrect = widget.isCorrect;
-
-    // Begin the timer
-    _startTimer();
   }
 
   void _navigateToNextPage() {
@@ -337,7 +350,7 @@ class _ResultPageState extends State<ResultPage> {
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
-                  height: 60,
+                  height: MediaQuery.of(context).size.height * 0.06,
                   decoration: BoxDecoration(
                     color: players.entries.elementAt(i).key == myName
                         ? myBoxColor
@@ -382,18 +395,21 @@ class _ResultPageState extends State<ResultPage> {
                 const SizedBox(height: 10),
               ],
             ),
-          const SizedBox(height: 30),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+          Expanded(
             child: Container(
-              height: 6,
-              width: MediaQuery.of(context).size.width * 0.6,
-              child: LinearProgressIndicator(
-                backgroundColor: myBoxColor,
-                value: _progressValue,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  children: [
+                    TimerBar(
+                      backgroundColor: Color.fromARGB(255, 131, 0, 0),
+                      progressColor: Colors.white,
+                      duration: Duration(seconds: 5),
+                      onComplete: _navigateToNextPage,
+                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.1)
+                  ],
+                  mainAxisAlignment: MainAxisAlignment.end,
+                )),
           )
         ],
       )),
