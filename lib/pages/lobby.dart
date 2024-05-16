@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
-import '../styles.dart';
-import '../main.dart';
+import 'package:oauth2_client/access_token_response.dart';
+import 'package:queue_quandry/pages/login.dart';
+import 'package:queue_quandry/styles.dart';
 import 'game.dart';
+import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/cupertino.dart';
-import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:spotify_sdk/spotify_sdk.dart';
+import '../main.dart';
+import '../credentials.dart';
+import 'package:oauth2_client/spotify_oauth2_client.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
+import 'dart:convert';
 
 Map<String, int> players = {
   'Player_1': 0,
@@ -16,7 +26,31 @@ Map<String, int> players = {
 int songsPerPlayer = 3;
 int songsAdded = 0;
 
-final String myName = 'Me';
+String myName = 'My Name';
+
+Future<String> _getUserPicture() async {
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  var responseData = json.decode(response.body);
+  return responseData['images'][0]['url'];
+}
+
+Future<String> _getUserName() async {
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  var responseData = json.decode(response.body);
+  return responseData['display_name'];
+}
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
@@ -105,6 +139,8 @@ class _LobbyPageState extends State<LobbyPage> {
                           padding: EdgeInsets.only(top: 6, bottom: 6),
                           child: PlayerListing(
                             name: entry.key,
+                            imageUrl: _getUserPicture(),
+                            playerName: _getUserName(),
                             removePlayer: removePlayer,
                             enableKicking: entry.key != myName,
                           ),
@@ -557,15 +593,16 @@ class _SongListingState extends State<SongListing> {
 }
 
 class PlayerListing extends StatefulWidget {
-  final String imageUrl;
+  final Future<String> imageUrl;
+  final Future<String> playerName;
   final String name;
   final IconData iconData;
   final Function()? removePlayer;
   final bool enableKicking;
 
   PlayerListing({
-    this.imageUrl =
-        "https://i.scdn.co/image/ab6761610000e5eba1b1a48354e9a91fef58f651",
+    required this.imageUrl,
+    required this.playerName,
     this.name = "DefaultName",
     this.iconData = Icons.remove_circle,
     this.removePlayer,
@@ -577,6 +614,16 @@ class PlayerListing extends StatefulWidget {
 }
 
 class _PlayerListingState extends State<PlayerListing> {
+  late Future<String> _imageUrlFuture;
+  late Future<String> _playerNameFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUrlFuture = widget.imageUrl;
+    _playerNameFuture = widget.playerName;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -588,24 +635,51 @@ class _PlayerListingState extends State<PlayerListing> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ClipOval(
-            child: Image.network(
-              widget.imageUrl,
-              width: 35,
-              height: 35,
-              fit: BoxFit.cover,
-            ),
+          FutureBuilder<String>(
+            future: _imageUrlFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: CircularProgressIndicator(),
+                );
+              } else if (snapshot.hasError) {
+                return Icon(Icons.error, color: Colors.white);
+              } else {
+                return ClipOval(
+                  child: Image.network(
+                    snapshot.data!,
+                    width: 35,
+                    height: 35,
+                    fit: BoxFit.cover,
+                  ),
+                );
+              }
+            },
           ),
           SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              widget.name,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          FutureBuilder<String>(
+            future: _playerNameFuture,
+            builder: (context, playerNameSnapshot) {
+              if (playerNameSnapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else if (playerNameSnapshot.hasError) {
+                return Text('Error: ${playerNameSnapshot.error}');
+              } else {
+                return Expanded(
+                  child: Text(
+                    playerNameSnapshot.data!,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                );
+              }
+            },
           ),
 
           // Enable the kicking option if it's allowed for the player
@@ -637,8 +711,7 @@ class _PlayerListingState extends State<PlayerListing> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  players.remove(widget.name);
-                                  widget.removePlayer?.call();
+                                  // Remove player logic goes here
                                 });
                                 Navigator.pop(context);
                               },

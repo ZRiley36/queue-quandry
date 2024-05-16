@@ -16,6 +16,9 @@ import 'dart:convert';
 
 const scope = 'user-read-private user-read-email';
 
+String? myToken;
+String? myRefreshToken;
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -41,8 +44,13 @@ class _LoginPageState extends State<LoginPage> {
                     height: 50,
                     child: Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          _login(); // Handle Spotify login action
+                        onPressed: () async {
+                          _login().then((value) => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LobbyPage(),
+                                ),
+                              )); // Handle Spotify login action
                         },
                         style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.all<Color>(
@@ -61,46 +69,46 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Container(
-                    height: 50,
-                    child: Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LobbyPage(),
-                            ),
-                          );
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(
-                              Color.fromARGB(
-                                  255, 255, 136, 0)), // Spotify green color
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(debugMessage,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.18,
-                  )
+                  // SizedBox(
+                  //   height: 10,
+                  // ),
+                  // Container(
+                  //   height: 50,
+                  //   child: Expanded(
+                  //     child: ElevatedButton(
+                  //       onPressed: () {
+                  //         Navigator.push(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //             builder: (context) => LobbyPage(),
+                  //           ),
+                  //         );
+                  //       },
+                  //       style: ButtonStyle(
+                  //         backgroundColor: MaterialStateProperty.all<Color>(
+                  //             Color.fromARGB(
+                  //                 255, 255, 136, 0)), // Spotify green color
+                  //       ),
+                  //       child: Row(
+                  //         mainAxisAlignment: MainAxisAlignment.center,
+                  //         children: [
+                  //           Text(debugMessage,
+                  //               style: TextStyle(
+                  //                   color: Colors.white,
+                  //                   fontWeight: FontWeight.bold,
+                  //                   fontSize: 18)),
+                  //         ],
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
+                  // SizedBox(
+                  //   height: MediaQuery.of(context).size.height * 0.18,
+                  // )
                 ]))));
   }
 
-  void _login() async {
+  Future<void> _login() async {
     AccessTokenResponse accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
       customUriScheme: 'queuequandary',
@@ -126,30 +134,9 @@ class _LoginPageState extends State<LoginPage> {
         clientSecret: spotifyClientSecret);
 
     // Global variables
-    String? myToken = accessToken.accessToken;
-    String? myRefreshToken = accessToken.refreshToken;
+    myToken = accessToken.accessToken;
+    myRefreshToken = accessToken.refreshToken;
 
     print("Spotify Token: " + myToken.toString());
-
-    // Attempt to access an album (test the API)
-    final response = await http.get(
-      Uri.parse('https://api.spotify.com/v1/me'),
-      headers: {
-        'Authorization': 'Bearer $myToken',
-      },
-    );
-
-    var responseData = json.decode(response.body);
-    print("✅ Logged in as user: " + responseData['display_name'].toString());
-    print("Follower Count " + responseData['followers']['total'].toString());
-
-    final response2 = await http.put(
-      Uri.parse('https://api.spotify.com/v1/me/player/pause'),
-      headers: {
-        'Authorization': 'Bearer $myToken',
-      },
-    );
-
-    print(response2.headers);
   }
 }
