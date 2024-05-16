@@ -614,10 +614,40 @@ class _PlayerListingState extends State<PlayerListing> {
           widget.enableKicking
               ? GestureDetector(
                   onTap: () {
-                    setState(() {
-                      players.remove(widget.name);
-                      widget.removePlayer?.call();
-                    });
+                    showCupertinoDialog(
+                      context: context,
+                      builder: (context) {
+                        return CupertinoAlertDialog(
+                          title: Text("Confirm"),
+                          content: Text(
+                              "Are you sure you want to kick ${widget.name} from the lobby?"),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: Text(
+                                "Cancel",
+                                style: TextStyle(color: Colors.blueAccent),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                            CupertinoDialogAction(
+                              child: Text(
+                                "Kick",
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  players.remove(widget.name);
+                                  widget.removePlayer?.call();
+                                });
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                   child: Container(
                     width: 30,
