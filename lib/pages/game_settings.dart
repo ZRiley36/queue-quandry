@@ -77,7 +77,7 @@ class _GameSettingsPageState extends State<GameSettingsPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
               child: Text('Start Game', style: TextStyle(color: Colors.white)),
             ),

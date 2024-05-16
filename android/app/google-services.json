@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1008998508424",
+    "project_id": "playlist-pursuit",
+    "storage_bucket": "playlist-pursuit.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1008998508424:android:b027cebfd84531627cfc3d",
+        "android_client_info": {
+          "package_name": "com.playlistpursuit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEc4m-5IasZTRbTn0zZD8b6SHmFwFMWYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
