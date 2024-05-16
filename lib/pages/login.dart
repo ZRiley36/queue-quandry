@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oauth2_client/access_token_response.dart';
 import 'package:queue_quandry/styles.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
@@ -6,11 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
 import '../credentials.dart';
 import 'lobby.dart';
+import 'package:oauth2_client/spotify_oauth2_client.dart';
 import 'package:flutter_web_auth/flutter_web_auth.dart';
+import 'dart:convert';
 
 const scope = 'user-read-private user-read-email';
 
@@ -99,29 +101,55 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _login() async {
-    Uri authUrl = Uri(
-        scheme: 'https',
-        host: 'accounts.spotify.com',
-        path: '/authorize',
-        queryParameters: {
-          'client_id': spotifyClientId,
-          'redirect_uri': spotifyRedirectUri,
-          'scope': scope,
-          'response_type': 'code',
-          'show_dialog': 'true'
-        });
+    AccessTokenResponse accessToken;
+    SpotifyOAuth2Client client = SpotifyOAuth2Client(
+      customUriScheme: 'queuequandary',
+      //Must correspond to the AndroidManifest's "android:scheme" attribute
+      redirectUri:
+          spotifyRedirectUri, //Can be any URI, but the scheme part must correspond to the customeUriScheme
+    );
+    var authResp = await client
+        .requestAuthorization(clientId: spotifyClientId, customParams: {
+      'show_dialog': 'true'
+    }, scopes: [
+      'user-read-private',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-currently-playing',
+      'user-read-email'
+    ]);
+    var authCode = authResp.code;
 
-    final result = await FlutterWebAuth.authenticate(
-        url: authUrl.toString(), callbackUrlScheme: "playlistpursuit");
+    accessToken = await client.requestAccessToken(
+        code: authCode.toString(),
+        clientId: spotifyClientId,
+        clientSecret: spotifyClientSecret);
 
-    final code = Uri.parse(result).queryParameters['code'];
+    // Global variables
+    String? myToken = accessToken.accessToken;
+    String? myRefreshToken = accessToken.refreshToken;
 
-    print("Your code is: " + result.toString());
+    print("Spotify Token: " + myToken.toString());
 
-    // if (await canLaunchUrl(authUrl)) {
-    //   await launchUrl(authUrl);
-    // } else {
-    //   throw 'Could not launch $authUrl';
-    // }
+    // Attempt to access an album (test the API)
+    final response = await http.get(
+      Uri.parse('https://api.spotify.com/v1/me'),
+      headers: {
+        'Authorization': 'Bearer $myToken',
+      },
+    );
+
+    var responseData = json.decode(response.body);
+    print("✅ Logged in as user: " + responseData['display_name'].toString());
+    print("Follower Count " + responseData['followers']['total'].toString());
+
+    final response2 = await http.put(
+      Uri.parse('https://api.spotify.com/v1/me/player/pause'),
+      headers: {
+        'Authorization': 'Bearer $myToken',
+      },
+    );
+
+    print(response2.headers);
   }
 }

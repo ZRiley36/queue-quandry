@@ -1,8 +1,9 @@
 import 'dart:async';
-
+import "../credentials.dart";
 import 'package:flutter/material.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
+import 'package:spotify_sdk/spotify_sdk.dart';
 
 final int winningScore = 10;
 bool musicPlaying = false;
@@ -94,10 +95,22 @@ class _GuessingPageState extends State<GuessingPage> {
     });
   }
 
+  playSong() async {
+    var accessToken = await SpotifySdk.getAccessToken(
+        clientId: spotifyClientId,
+        redirectUrl: spotifyRedirectUri,
+        scope:
+            "app-remote-control,user-modify-playback-state,playlist-read-private");
+
+    print("access token : " + accessToken + toString());
+  }
+
   void _pausePlayback() {
     setState(() {
       musicPlaying = !musicPlaying;
     });
+
+    playSong();
   }
 
   @override
