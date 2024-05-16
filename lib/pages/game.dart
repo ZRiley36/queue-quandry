@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:queue_quandry/pages/home.dart';
 import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/styles.dart';
 

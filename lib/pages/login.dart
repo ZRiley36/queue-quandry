@@ -76,7 +76,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.all<Color>(
-                              Color.fromARGB(255, 255, 136, 0)), // Spotify green color
+                              Color.fromARGB(
+                                  255, 255, 136, 0)), // Spotify green color
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,

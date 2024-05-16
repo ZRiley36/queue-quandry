@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'pages/login.dart';
-import 'pages/home.dart';
 import 'styles.dart';
 
 void main() {

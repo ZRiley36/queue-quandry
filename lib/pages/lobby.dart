@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:queue_quandry/pages/home.dart';
 import '../styles.dart';
 import '../main.dart';
 import 'game.dart';
