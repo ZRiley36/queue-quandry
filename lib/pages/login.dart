@@ -23,69 +23,78 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   @override
-  String loginMessage = 'Login to Spotify';
-  String debugMessage = 'Continue Offline';
+  String loginMessage = 'Login Using Spotify';
+  String debugMessage = 'DEBUG';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: spotifyBlack,
-        appBar: AppBar(
-          backgroundColor: spotifyBlack,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
         body: Center(
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-              ElevatedButton(
-                onPressed: () {
-                  _login(); // Handle Spotify login action
-                },
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all<Color>(
-                      Colors.green), // Spotify green color
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.music_note,
-                        color: Colors.white), // Spotify music note icon
-                    SizedBox(width: 10), // Spacer
-                    Text(loginMessage, style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LobbyPage(),
+            child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 50),
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Container(
+                    height: 50,
+                    child: Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _login(); // Handle Spotify login action
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Colors.green), // Spotify green color
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(loginMessage,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18)),
+                          ],
+                        ),
+                      ),
                     ),
-                  );
-                },
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all<Color>(
-                      spotifyPurple), // Spotify green color
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(debugMessage, style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              )
-            ])));
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Container(
+                    height: 50,
+                    child: Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LobbyPage(),
+                            ),
+                          );
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(
+                              Color.fromARGB(255, 255, 136, 0)), // Spotify green color
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(debugMessage,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.18,
+                  )
+                ]))));
   }
 
   void _login() async {

@@ -54,12 +54,7 @@ class _LobbyPageState extends State<LobbyPage> {
             color: Colors.white,
           ),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomePage(),
-              ),
-            );
+            Navigator.of(context).pop();
           },
         ),
       ),
