@@ -211,13 +211,13 @@ class _GuessingPageState extends State<GuessingPage> {
                             });
                           },
                           icon: musicPlaying
-                              ? Icon(
+                              ? Icon(Icons.pause_rounded,
+                                  color: Colors.white, size: 80)
+                              : Icon(
                                   Icons.play_arrow_rounded,
                                   color: Colors.white,
                                   size: 80,
-                                )
-                              : Icon(Icons.pause_rounded,
-                                  color: Colors.white, size: 80),
+                                ),
                           splashColor: Colors.transparent,
                           highlightColor: Colors.transparent,
                         ),

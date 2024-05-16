@@ -94,25 +94,35 @@ class _LobbyPageState extends State<LobbyPage> {
             ),
             Row(
               children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.3,
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: ListView.builder(
-                    itemCount: players.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final entry = players.entries.toList()[index];
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: PlayerListing(
-                          name: entry.key,
-                          removePlayer: removePlayer,
-                          enableKicking: entry.key != myName,
-                        ),
-                      );
-                    },
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.all(0),
+                      itemCount: players.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final entry = players.entries.toList()[index];
+                        return Padding(
+                          padding: EdgeInsets.only(top: 6, bottom: 6),
+                          child: PlayerListing(
+                            name: entry.key,
+                            removePlayer: removePlayer,
+                            enableKicking: entry.key != myName,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
+            ),
+            SizedBox(
+              height: 5,
             ),
             ElevatedButton(
                 onPressed: () {
@@ -510,7 +520,7 @@ class _SongListingState extends State<SongListing> {
                           CupertinoDialogAction(
                             child: Text(
                               "OK",
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(color: Colors.redAccent),
                             ),
                             onPressed: () {
                               Navigator.of(context).pop();
