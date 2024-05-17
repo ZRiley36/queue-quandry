@@ -32,11 +32,13 @@ Future<String> getLocalUserID() async {
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
+  final bool reset;
 
   const LobbyPage({
     Key? key,
     this.numPlayers = 2,
     this.songsPerPlayer = 1,
+    required this.reset,
   }) : super(key: key);
 
   @override
@@ -76,7 +78,7 @@ class _LobbyPageState extends State<LobbyPage> {
     _numPlayers = widget.numPlayers;
 
     // reset the lobby
-    resetLobby();
+    if (widget.reset) resetLobby();
 
     // populate the lobby
     addLocalPlayer();
@@ -97,15 +99,12 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   Future<void> _initAllPlayers() async {
-    // TODO Ensure this doesn't happen on a lobby reload
-    // if (playerList.length > 0) return;
-
     await Future.forEach(playerList, (MyPlayer instance) async {
-      await instance.initPlayer();
-
-      String display_name = instance.display_name;
-
-      print("🟢 Player $display_name joined.");
+      if (!instance.isInitialized) {
+        await instance.initPlayer();
+        String display_name = instance.display_name;
+        print("🟢 Player $display_name joined lobby.");
+      }
     });
   }
 

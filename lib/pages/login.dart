@@ -53,7 +53,9 @@ class _LoginPageState extends State<LoginPage> {
                               (value) => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => LobbyPage(),
+                                      builder: (context) => LobbyPage(
+                                        reset: true,
+                                      ),
                                     ),
                                   ), onError: (error) {
                             print(

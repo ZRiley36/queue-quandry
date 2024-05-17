@@ -7,13 +7,16 @@ class MyPlayer {
   final String user_id;
   late String display_name;
   late String image;
+  bool isInitialized;
   int score = 0;
 
-  MyPlayer(this.user_id);
+  MyPlayer(this.user_id, {this.isInitialized = false});
 
   Future<void> initPlayer() async {
     display_name = await getDisplayName();
     image = await getUserPicture();
+
+    isInitialized = true;
   }
 
   Future<String> getUserPicture() async {

@@ -697,7 +697,9 @@ class _EndPageState extends State<EndPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LobbyPage(),
+                      builder: (context) => LobbyPage(
+                        reset: false,
+                      ),
                     ),
                   );
                 },
