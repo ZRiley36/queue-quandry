@@ -65,9 +65,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    print("Attempting login.");
-
-    AccessTokenResponse accessToken;
+    AccessTokenResponse? accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
       customUriScheme: 'playlistpursuit',
       //Must correspond to the AndroidManifest's "android:scheme" attribute
@@ -86,8 +84,6 @@ class _LoginPageState extends State<LoginPage> {
       'user-read-email'
     ]);
     var authCode = authResp.code;
-
-    print("Acquired authCode");
 
     accessToken = await client.requestAccessToken(
         code: authCode.toString(),

@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:oauth2_client/access_token_response.dart';
 import 'package:queue_quandry/pages/login.dart';
 import 'package:queue_quandry/styles.dart';
 import 'game.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:spotify_sdk/spotify_sdk.dart';
-import '../main.dart';
-import '../credentials.dart';
-import 'package:oauth2_client/spotify_oauth2_client.dart';
-import 'package:flutter_web_auth/flutter_web_auth.dart';
 import 'dart:convert';
 
 Map<String, int> players = {
