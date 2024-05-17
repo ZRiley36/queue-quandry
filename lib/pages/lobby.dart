@@ -7,49 +7,24 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../spotify-api.dart';
 
-Map<String, int> players = {
-  'Player_1': 0,
-  'Player_2': 0,
-  'Player_3': 0,
-  'Me': 0,
-};
+Map<String, int> players = {};
 
 int songsPerPlayer = 3;
 int songsAdded = 0;
 
-String myName = 'My Name';
-
-Future<String> _getUserPicture() async {
-  final response = await http.get(
-    Uri.parse('https://api.spotify.com/v1/me'),
-    headers: {
-      'Authorization': 'Bearer $myToken',
-    },
-  );
-
-  var responseData = json.decode(response.body);
-  return responseData['images'][0]['url'];
-}
-
-Future<String> _getUserName() async {
-  final response = await http.get(
-    Uri.parse('https://api.spotify.com/v1/me'),
-    headers: {
-      'Authorization': 'Bearer $myToken',
-    },
-  );
-
-  var responseData = json.decode(response.body);
-  return responseData['display_name'];
-}
+String myName = 'LocalHost';
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
 
-  const LobbyPage({Key? key, this.numPlayers = 2, this.songsPerPlayer = 1})
-      : super(key: key);
+  const LobbyPage({
+    Key? key,
+    this.numPlayers = 2,
+    this.songsPerPlayer = 1,
+  }) : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
@@ -57,18 +32,49 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   late int _numPlayers;
+  String localUserID = "DefaultUser";
+
+  Future<void> addLocalPlayer() async {
+    localUserID = await PlayerUtils.getLocalUserID();
+    myName = localUserID;
+
+    setState(() {
+      players[localUserID] = 0;
+    });
+  }
+
+  Future<void> addHeadlessPlayer(String id) async {
+    setState(() {
+      players[id] = 0;
+    });
+  }
+
+  Future<void> addRemotePlayer(String incomingID) async {
+    setState(() {
+      players[incomingID] = 0;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _numPlayers = widget.numPlayers;
+
+    // populate the lobby
+    addLocalPlayer();
+    // DEBUG: add more players
+    addHeadlessPlayer('abrawolf');
+    addHeadlessPlayer('tommyryan2002');
+    addHeadlessPlayer('nickwaizenegger');
   }
 
-  void removePlayer() {
-    setState(() {});
+  void removePlayer(String user_id) {
+    setState(() {
+      print("removing a player with id: $user_id");
+      players.remove(user_id);
+    });
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -112,119 +118,141 @@ class _LobbyPageState extends State<LobbyPage> {
             SizedBox(
               height: 5,
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    child: ListView.builder(
+            Container(
+              child: FutureBuilder(
+                future: Future.wait(players.keys.map((id) => Future.wait([
+                      PlayerUtils.getUserPicture(id),
+                      PlayerUtils.getRemoteUserDisplayName(id),
+                    ]))),
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<List<dynamic>>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                        child: CircularProgressIndicator(
+                      color: spotifyGreen,
+                      strokeWidth: 5,
+                      strokeCap: StrokeCap.round,
+                    ));
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    final List<List<dynamic>> playerDataList = snapshot.data!;
+                    return ListView.builder(
                       shrinkWrap: true,
                       padding: EdgeInsets.all(0),
                       itemCount: players.length,
                       itemBuilder: (BuildContext context, int index) {
-                        final entry = players.entries.toList()[index];
+                        final String id = players.keys.toList()[index];
+                        final List<dynamic> playerData = playerDataList[index];
+                        final String imageUrl = playerData[0];
+                        final String playerName = playerData[1];
+
                         return Padding(
                           padding: EdgeInsets.only(top: 6, bottom: 6),
                           child: PlayerListing(
-                            name: entry.key,
-                            imageUrl: _getUserPicture(),
-                            playerName: _getUserName(),
+                            imageUrl: imageUrl,
+                            name: playerName,
                             removePlayer: removePlayer,
-                            enableKicking: entry.key != myName,
+                            enableKicking: id != localUserID,
                           ),
                         );
                       },
-                    ),
-                  ),
-                ),
-              ],
+                    );
+                  }
+                },
+              ),
             ),
             SizedBox(
               height: 5,
             ),
             ElevatedButton(
-                onPressed: () {
-                  _share();
-                },
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.25,
-                  child: Row(
-                    children: [
-                      Text(
-                        "Invite",
-                        style: TextStyle(color: Colors.black, fontSize: 18),
+              onPressed: () {
+                _share();
+              },
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.25,
+                child: Row(
+                  children: [
+                    Text(
+                      "Invite",
+                      style: TextStyle(color: Colors.black, fontSize: 18),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Container(
+                      height: 30,
+                      child: Icon(
+                        Icons.ios_share_outlined,
+                        color: Colors.black,
                       ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Container(
-                        height: 30,
-                        child: Icon(
-                          Icons.ios_share_outlined,
-                          color: Colors.black,
-                        ),
-                      )
-                    ],
-                    mainAxisAlignment: MainAxisAlignment.center,
-                  ),
-                )),
-            const Spacer(),
-            const Text(
-              "Songs Per Player",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18),
-            ),
-            Padding(
-              padding: EdgeInsets.only(
-                  top: 5, right: MediaQuery.of(context).size.width * 0.7),
-              child: _buildDropdown(
-                'Songs Per Player',
-                songsPerPlayer,
-                (value) {
-                  setState(() {
-                    songsPerPlayer = value!;
-                  });
-                },
+                    )
+                  ],
+                  mainAxisAlignment: MainAxisAlignment.center,
+                ),
               ),
             ),
-            Spacer(),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QueuePage(
-                            numPlayers: _numPlayers,
-                            songsPerPlayer: songsPerPlayer,
+            const Spacer(),
+            Expanded(
+                child: Container(
+              alignment: Alignment.bottomCenter,
+              child:
+                  Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                const Text(
+                  "Songs Per Player",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                      top: 5, right: MediaQuery.of(context).size.width * 0.7),
+                  child: _buildDropdown(
+                    'Songs Per Player',
+                    songsPerPlayer,
+                    (value) {
+                      setState(() {
+                        songsPerPlayer = value!;
+                      });
+                    },
+                  ),
+                ),
+                Spacer(),
+                if (players.length > 1)
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => QueuePage(
+                                  numPlayers: _numPlayers,
+                                  songsPerPlayer: songsPerPlayer,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF9d40e3),
+                              minimumSize: Size(150, 50)),
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 20,
+                                fontFamily: 'Gotham'),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF9d40e3),
-                        minimumSize: Size(150, 50)),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          fontFamily: 'Gotham'),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+              ]),
+            )),
             Spacer()
           ],
         ),
@@ -585,16 +613,15 @@ class _SongListingState extends State<SongListing> {
 }
 
 class PlayerListing extends StatefulWidget {
-  final Future<String> imageUrl;
-  final Future<String> playerName;
+  final String imageUrl;
   final String name;
   final IconData iconData;
-  final Function()? removePlayer;
+  final Function(String)? removePlayer;
   final bool enableKicking;
 
   PlayerListing({
-    required this.imageUrl,
-    required this.playerName,
+    this.imageUrl =
+        "https://i.scdn.co/image/ab6761610000e5eba1b1a48354e9a91fef58f651",
     this.name = "DefaultName",
     this.iconData = Icons.remove_circle,
     this.removePlayer,
@@ -606,14 +633,10 @@ class PlayerListing extends StatefulWidget {
 }
 
 class _PlayerListingState extends State<PlayerListing> {
-  late Future<String> _imageUrlFuture;
-  late Future<String> _playerNameFuture;
-
   @override
   void initState() {
+    // TODO: implement initState
     super.initState();
-    _imageUrlFuture = widget.imageUrl;
-    _playerNameFuture = widget.playerName;
   }
 
   @override
@@ -627,51 +650,24 @@ class _PlayerListingState extends State<PlayerListing> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          FutureBuilder<String>(
-            future: _imageUrlFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox(
-                  width: 35,
-                  height: 35,
-                  child: CircularProgressIndicator(),
-                );
-              } else if (snapshot.hasError) {
-                return Icon(Icons.error, color: Colors.white);
-              } else {
-                return ClipOval(
-                  child: Image.network(
-                    snapshot.data!,
-                    width: 35,
-                    height: 35,
-                    fit: BoxFit.cover,
-                  ),
-                );
-              }
-            },
+          ClipOval(
+            child: Image.network(
+              widget.imageUrl,
+              width: 35,
+              height: 35,
+              fit: BoxFit.cover,
+            ),
           ),
           SizedBox(width: 10),
-          FutureBuilder<String>(
-            future: _playerNameFuture,
-            builder: (context, playerNameSnapshot) {
-              if (playerNameSnapshot.connectionState ==
-                  ConnectionState.waiting) {
-                return CircularProgressIndicator();
-              } else if (playerNameSnapshot.hasError) {
-                return Text('Error: ${playerNameSnapshot.error}');
-              } else {
-                return Expanded(
-                  child: Text(
-                    playerNameSnapshot.data!,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                );
-              }
-            },
+          Expanded(
+            child: Text(
+              widget.name,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
 
           // Enable the kicking option if it's allowed for the player
@@ -703,7 +699,8 @@ class _PlayerListingState extends State<PlayerListing> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  // Remove player logic goes here
+                                  // players.remove(widget.name);
+                                  widget.removePlayer?.call(widget.name);
                                 });
                                 Navigator.pop(context);
                               },

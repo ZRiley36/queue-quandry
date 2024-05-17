@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:queue_quandry/pages/login.dart';
 import 'package:http/http.dart' as http;
+import 'package:queue_quandry/spotify-api.dart';
 import "../credentials.dart";
 import 'package:flutter/material.dart';
-import 'package:queue_quandry/pages/lobby.dart';
+import 'lobby.dart';
 import 'package:queue_quandry/styles.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
 import 'dart:convert';
@@ -21,18 +22,11 @@ Future<void> _pausePlayback() async {
 }
 
 Future<void> _resumePlayback() async {
-  final Map<String, dynamic> body = {
-    'context_uri':
-        'spotify:playlist:37i9dQZF1DWY4xHQp97fN6', // Example: URI of a playlist
-    'device_id': "FIND THIS", // Specify the device ID here
-  };
-
   await http.put(
     Uri.parse('https://api.spotify.com/v1/me/player/play'),
     headers: {
       'Authorization': 'Bearer $myToken',
     },
-    body: json.encode(body),
   );
 }
 
@@ -128,10 +122,10 @@ class _GuessingPageState extends State<GuessingPage> {
       musicPlaying = !musicPlaying;
     });
 
-    if (musicPlaying == false)
-      _pausePlayback();
-    else
-      _resumePlayback();
+    // if (musicPlaying == false)
+    //   _pausePlayback();
+    // else
+    //   _resumePlayback();
   }
 
   @override
