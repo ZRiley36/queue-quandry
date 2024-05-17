@@ -698,7 +698,7 @@ class _EndPageState extends State<EndPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => LobbyPage(
-                        reset: false,
+                        reset: true,
                       ),
                     ),
                   );

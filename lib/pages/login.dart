@@ -11,17 +11,22 @@ const scope = 'user-read-private user-read-email';
 
 String? myToken;
 String? myRefreshToken;
+DateTime? tokenExpiration;
 
 Future<void> loadToken() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   myToken = prefs.getString('accessToken');
   myRefreshToken = prefs.getString('refreshToken');
+  String? expirationString = prefs.getString('expirationDate');
+
+  if (expirationString != null) {
+    tokenExpiration = DateTime.parse(expirationString);
+  }
 
   if (myToken != null) {
     print("Loaded Spotify Token ✅ -> " + myToken.toString());
   } else {
     print("No token found, user needs to log in.");
-    // Optionally, you can call _login() here if you want to prompt the user to log in
   }
 }
 
@@ -33,7 +38,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  @override
   String loginMessage = 'Login';
   String debugMessage = 'DEBUG';
 
@@ -49,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       ElevatedButton(
                         onPressed: () async {
-                          _login().then(
+                          authenticateUser().then(
                               (value) => Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -60,11 +64,11 @@ class _LoginPageState extends State<LoginPage> {
                                   ), onError: (error) {
                             print(
                                 "Serious login failure. Aborting [ERROR: ${error.toString()}]");
-                          }); // Handle Spotify login action
+                          });
                         },
                         style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(
-                              Colors.green), // Spotify green color
+                          backgroundColor:
+                              MaterialStateProperty.all<Color>(Colors.green),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -80,17 +84,31 @@ class _LoginPageState extends State<LoginPage> {
                     ]))));
   }
 
-  Future<void> _login() async {
+  Future<void> authenticateUser() async {
     await loadToken();
 
-    if (myToken != null && myToken != '') return;
+    // Check if token is not null and not expired
+    if (myToken != null && tokenExpiration != null) {
+      if (DateTime.now().isBefore(tokenExpiration!)) {
+        print(
+            "Token is valid and not expired. Proceeding without re-authentication.");
+        return;
+      } else {
+        // Token is expired, attempt to refresh it
+        bool refreshed = await refreshAccessToken();
+        if (refreshed) {
+          print(
+              "Token successfully refreshed. Proceeding without re-authentication.");
+          return;
+        }
+      }
+    }
 
+    // Proceed with re-authentication if no valid token or refresh failed
     AccessTokenResponse? accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
       customUriScheme: 'playlistpursuit',
-      //Must correspond to the AndroidManifest's "android:scheme" attribute
-      redirectUri:
-          spotifyRedirectUri, //Can be any URI, but the scheme part must correspond to the customeUriScheme
+      redirectUri: spotifyRedirectUri,
     );
 
     var authResp = await client
@@ -113,12 +131,52 @@ class _LoginPageState extends State<LoginPage> {
     // Global variables
     myToken = accessToken.accessToken;
     myRefreshToken = accessToken.refreshToken;
+    tokenExpiration = accessToken.expirationDate;
 
     // Save tokens to shared preferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('accessToken', myToken ?? '');
-    await prefs.setString('refreshToken', myRefreshToken ?? '');
+    await prefs.setString('accessToken', myToken!);
+    await prefs.setString('refreshToken', myRefreshToken!);
+    await prefs.setString('expirationDate', tokenExpiration!.toIso8601String());
 
     print("Acquired Spotify Token ✅ -> " + myToken.toString());
+  }
+
+  Future<bool> refreshAccessToken() async {
+    if (myRefreshToken == null) {
+      return false;
+    }
+
+    SpotifyOAuth2Client client = SpotifyOAuth2Client(
+      customUriScheme: 'playlistpursuit',
+      redirectUri: spotifyRedirectUri,
+    );
+
+    try {
+      AccessTokenResponse accessToken = await client.refreshToken(
+        myRefreshToken!,
+        clientId: spotifyClientId,
+        clientSecret: spotifyClientSecret,
+      );
+
+      // Update global variables with the new token details
+      myToken = accessToken.accessToken;
+      myRefreshToken = accessToken.refreshToken ??
+          myRefreshToken; // Refresh token may not change
+      tokenExpiration = accessToken.expirationDate;
+
+      // Save new tokens to shared preferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('accessToken', myToken!);
+      await prefs.setString('refreshToken', myRefreshToken!);
+      await prefs.setString(
+          'expirationDate', tokenExpiration!.toIso8601String());
+
+      print("Token refreshed successfully ✅ -> " + myToken.toString());
+      return true;
+    } catch (error) {
+      print("Failed to refresh token [ERROR: ${error.toString()}]");
+      return false;
+    }
   }
 }
