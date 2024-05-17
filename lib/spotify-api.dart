@@ -3,21 +3,21 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class PlayerUtils {
-  PlayerUtils._();
+class MyPlayer {
+  final String user_id;
+  late String display_name;
+  late String image;
 
-  static Future<String> getLocalUserID() async {
-    final response = await http.get(
-      Uri.parse('https://api.spotify.com/v1/me'),
-      headers: {
-        'Authorization': 'Bearer $myToken',
-      },
-    );
+  MyPlayer(this.user_id);
 
-    return json.decode(response.body)['id'];
+  Future<void> initPlayer() async {
+    display_name = await getDisplayName();
+    image = await getUserPicture();
+
+    print("🎵 Player $user_id initialized.");
   }
 
-  static Future<String> getUserPicture(String user_id) async {
+  Future<String> getUserPicture() async {
     final response = await http.get(
       Uri.parse('https://api.spotify.com/v1/users/$user_id'),
       headers: {
@@ -29,19 +29,8 @@ class PlayerUtils {
     return responseData['images'][0]['url'];
   }
 
-  static Future<String> getLocalUserDisplayName() async {
-    final response = await http.get(
-      Uri.parse('https://api.spotify.com/v1/me'),
-      headers: {
-        'Authorization': 'Bearer $myToken',
-      },
-    );
-
-    return json.decode(response.body)['display_name'];
-  }
-
   // Gets a specified user's profile
-  static Future<String> getRemoteUserDisplayName(String user_id) async {
+  Future<String> getDisplayName() async {
     final response = await http.get(
       Uri.parse('https://api.spotify.com/v1/users/$user_id'),
       headers: {

@@ -11,10 +11,23 @@ import '../spotify-api.dart';
 
 Map<String, int> players = {};
 
+List<MyPlayer> playerList = [];
+
 int songsPerPlayer = 3;
 int songsAdded = 0;
 
 String myName = 'LocalHost';
+
+Future<String> getLocalUserID() async {
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  return json.decode(response.body)['id'];
+}
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
@@ -35,23 +48,25 @@ class _LobbyPageState extends State<LobbyPage> {
   String localUserID = "DefaultUser";
 
   Future<void> addLocalPlayer() async {
-    localUserID = await PlayerUtils.getLocalUserID();
+    localUserID = await getLocalUserID();
     myName = localUserID;
 
+    var localPlayer = MyPlayer(localUserID);
+
     setState(() {
-      players[localUserID] = 0;
+      playerList.add(localPlayer);
     });
   }
 
   Future<void> addHeadlessPlayer(String id) async {
     setState(() {
-      players[id] = 0;
+      playerList.add(MyPlayer(id));
     });
   }
 
   Future<void> addRemotePlayer(String incomingID) async {
     setState(() {
-      players[incomingID] = 0;
+      playerList.add(MyPlayer(incomingID));
     });
   }
 
@@ -66,13 +81,42 @@ class _LobbyPageState extends State<LobbyPage> {
     addHeadlessPlayer('abrawolf');
     addHeadlessPlayer('tommyryan2002');
     addHeadlessPlayer('nickwaizenegger');
+    addHeadlessPlayer('player0');
   }
 
   void removePlayer(String user_id) {
     setState(() {
-      print("removing a player with id: $user_id");
-      players.remove(user_id);
+      playerList.remove(user_id);
     });
+  }
+
+  Future<void> _initAllPlayers() async {
+    await Future.forEach(playerList, (MyPlayer instance) async {
+      await instance.initPlayer();
+    });
+  }
+
+  Widget _createAllPlayerListings() {
+    print("creating all player listings");
+
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: EdgeInsets.all(0),
+      itemCount: playerList.length,
+      itemBuilder: (BuildContext context, int index) {
+        final playerInstance = playerList[index];
+
+        return Padding(
+          padding: EdgeInsets.only(top: 6, bottom: 6),
+          child: PlayerListing(
+            imageUrl: playerInstance.image,
+            name: playerInstance.display_name,
+            removePlayer: removePlayer,
+            enableKicking: playerInstance.user_id != localUserID,
+          ),
+        );
+      },
+    );
   }
 
   Widget build(BuildContext context) {
@@ -91,10 +135,9 @@ class _LobbyPageState extends State<LobbyPage> {
       ),
       backgroundColor: spotifyBlack,
       body: Padding(
-        padding: EdgeInsets.only(left: 18, right: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          padding: EdgeInsets.only(left: 18, right: 18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text(
               'Queue Quandary',
               style: TextStyle(
@@ -119,49 +162,31 @@ class _LobbyPageState extends State<LobbyPage> {
               height: 5,
             ),
             Container(
-              child: FutureBuilder(
-                future: Future.wait(players.keys.map((id) => Future.wait([
-                      PlayerUtils.getUserPicture(id),
-                      PlayerUtils.getRemoteUserDisplayName(id),
-                    ]))),
-                builder: (BuildContext context,
-                    AsyncSnapshot<List<List<dynamic>>> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                        child: CircularProgressIndicator(
-                      color: spotifyGreen,
-                      strokeWidth: 5,
-                      strokeCap: StrokeCap.round,
-                    ));
-                  } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  } else {
-                    final List<List<dynamic>> playerDataList = snapshot.data!;
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.all(0),
-                      itemCount: players.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final String id = players.keys.toList()[index];
-                        final List<dynamic> playerData = playerDataList[index];
-                        final String imageUrl = playerData[0];
-                        final String playerName = playerData[1];
+                child: FutureBuilder<void>(
+              future:
+                  _initAllPlayers(), // The future passed from the parent widget
+              builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator(); // Show a loading spinner
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}'); // Handle errors
+                } else {
+                  return _createAllPlayerListings();
+                }
+              },
+            )
 
-                        return Padding(
-                          padding: EdgeInsets.only(top: 6, bottom: 6),
-                          child: PlayerListing(
-                            imageUrl: imageUrl,
-                            name: playerName,
-                            removePlayer: removePlayer,
-                            enableKicking: id != localUserID,
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
-              ),
-            ),
+                // return Padding(
+                //   padding: EdgeInsets.only(top: 6, bottom: 6),
+                //   child: PlayerListing(
+                //     imageUrl: player.image,
+                //     name: player.display_name,
+                //     removePlayer: removePlayer,
+                //     enableKicking: player.user_id != localUserID,
+                //   ),
+                // );
+
+                ),
             SizedBox(
               height: 5,
             ),
@@ -193,70 +218,71 @@ class _LobbyPageState extends State<LobbyPage> {
               ),
             ),
             const Spacer(),
-            Expanded(
-                child: Container(
-              alignment: Alignment.bottomCenter,
-              child:
-                  Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                const Text(
-                  "Songs Per Player",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(
-                      top: 5, right: MediaQuery.of(context).size.width * 0.7),
-                  child: _buildDropdown(
-                    'Songs Per Player',
-                    songsPerPlayer,
-                    (value) {
-                      setState(() {
-                        songsPerPlayer = value!;
-                      });
-                    },
+            Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Songs Per Player",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18),
                   ),
-                ),
-                Spacer(),
-                if (players.length > 1)
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => QueuePage(
-                                  numPlayers: _numPlayers,
-                                  songsPerPlayer: songsPerPlayer,
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF9d40e3),
-                              minimumSize: Size(150, 50)),
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20,
-                                fontFamily: 'Gotham'),
-                          ),
-                        ),
-                      ],
+                  Padding(
+                    padding: EdgeInsets.only(
+                        top: 5, right: MediaQuery.of(context).size.width * 0.7),
+                    child: _buildDropdown(
+                      'Songs Per Player',
+                      songsPerPlayer,
+                      (value) {
+                        setState(() {
+                          songsPerPlayer = value!;
+                        });
+                      },
                     ),
                   ),
-              ]),
-            )),
-            Spacer()
-          ],
-        ),
-      ),
+                  if (players.length > 1)
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => QueuePage(
+                                    numPlayers: _numPlayers,
+                                    songsPerPlayer: songsPerPlayer,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF9d40e3),
+                                minimumSize: Size(150, 50)),
+                            child: const Text(
+                              'Continue',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20,
+                                  fontFamily: 'Gotham'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.05,
+                  )
+                ]),
+          ])),
+      // Container(
+      //   decoration: BoxDecoration(color: Colors.red),
+      //   height: MediaQuery.of(context).size.height * 0.2,
+      // ),
     );
   }
 
