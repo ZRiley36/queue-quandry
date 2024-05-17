@@ -9,6 +9,9 @@ PODS:
     - FlutterMacOS
   - share_plus (0.0.1):
     - Flutter
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - spotify_sdk (0.0.1):
     - Flutter
   - url_launcher_ios (0.0.1):
@@ -20,6 +23,7 @@ DEPENDENCIES:
   - flutter_web_auth (from `.symlinks/plugins/flutter_web_auth/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - spotify_sdk (from `.symlinks/plugins/spotify_sdk/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
@@ -34,6 +38,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   share_plus:
     :path: ".symlinks/plugins/share_plus/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   spotify_sdk:
     :path: ".symlinks/plugins/spotify_sdk/ios"
   url_launcher_ios:
@@ -45,6 +51,7 @@ SPEC CHECKSUMS:
   flutter_web_auth: 71382897b8dc10ad94a2928cbb09ddf515749808
   path_provider_foundation: 3784922295ac71e43754bd15e0653ccfd36a147c
   share_plus: c3fef564749587fc939ef86ffb283ceac0baf9f5
+  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   spotify_sdk: 63cc13896c9ff93c4d023e03bb4b9b516602f355
   url_launcher_ios: 6116280ddcfe98ab8820085d8d76ae7449447586
 

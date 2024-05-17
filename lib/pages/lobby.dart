@@ -8,15 +8,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../spotify-api.dart';
-
-Map<String, int> players = {};
+import '../main.dart';
+import 'package:logger/logger.dart';
 
 List<MyPlayer> playerList = [];
 
 int songsPerPlayer = 3;
 int songsAdded = 0;
 
-String myName = 'LocalHost';
+String localUserID = "DefaultUser";
 
 Future<String> getLocalUserID() async {
   final response = await http.get(
@@ -45,16 +45,12 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   late int _numPlayers;
-  String localUserID = "DefaultUser";
 
   Future<void> addLocalPlayer() async {
     localUserID = await getLocalUserID();
-    myName = localUserID;
-
-    var localPlayer = MyPlayer(localUserID);
 
     setState(() {
-      playerList.add(localPlayer);
+      playerList.add(MyPlayer(localUserID));
     });
   }
 
@@ -70,10 +66,17 @@ class _LobbyPageState extends State<LobbyPage> {
     });
   }
 
+  void resetLobby() {
+    playerList.clear();
+  }
+
   @override
   void initState() {
     super.initState();
     _numPlayers = widget.numPlayers;
+
+    // reset the lobby
+    resetLobby();
 
     // populate the lobby
     addLocalPlayer();
@@ -81,18 +84,28 @@ class _LobbyPageState extends State<LobbyPage> {
     addHeadlessPlayer('abrawolf');
     addHeadlessPlayer('tommyryan2002');
     addHeadlessPlayer('nickwaizenegger');
-    addHeadlessPlayer('player0');
   }
 
-  void removePlayer(String user_id) {
+  void removePlayer(MyPlayer playerInstance) {
     setState(() {
-      playerList.remove(user_id);
+      String display_name = playerInstance.display_name;
+
+      playerList.remove(playerInstance);
+
+      print("🔴 Removed player $display_name from lobby.");
     });
   }
 
   Future<void> _initAllPlayers() async {
+    // TODO Ensure this doesn't happen on a lobby reload
+    // if (playerList.length > 0) return;
+
     await Future.forEach(playerList, (MyPlayer instance) async {
       await instance.initPlayer();
+
+      String display_name = instance.display_name;
+
+      print("🟢 Player $display_name joined.");
     });
   }
 
@@ -109,10 +122,8 @@ class _LobbyPageState extends State<LobbyPage> {
         return Padding(
           padding: EdgeInsets.only(top: 6, bottom: 6),
           child: PlayerListing(
-            imageUrl: playerInstance.image,
-            name: playerInstance.display_name,
-            removePlayer: removePlayer,
-            enableKicking: playerInstance.user_id != localUserID,
+            playerInstance: playerInstance,
+            onRemove: removePlayer,
           ),
         );
       },
@@ -174,19 +185,7 @@ class _LobbyPageState extends State<LobbyPage> {
                   return _createAllPlayerListings();
                 }
               },
-            )
-
-                // return Padding(
-                //   padding: EdgeInsets.only(top: 6, bottom: 6),
-                //   child: PlayerListing(
-                //     imageUrl: player.image,
-                //     name: player.display_name,
-                //     removePlayer: removePlayer,
-                //     enableKicking: player.user_id != localUserID,
-                //   ),
-                // );
-
-                ),
+            )),
             SizedBox(
               height: 5,
             ),
@@ -242,7 +241,7 @@ class _LobbyPageState extends State<LobbyPage> {
                       },
                     ),
                   ),
-                  if (players.length > 1)
+                  if (playerList.length > 1)
                     Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -639,19 +638,13 @@ class _SongListingState extends State<SongListing> {
 }
 
 class PlayerListing extends StatefulWidget {
-  final String imageUrl;
-  final String name;
-  final IconData iconData;
-  final Function(String)? removePlayer;
-  final bool enableKicking;
+  late bool enableKicking;
+  final MyPlayer playerInstance;
+  final Function(MyPlayer)? onRemove;
 
   PlayerListing({
-    this.imageUrl =
-        "https://i.scdn.co/image/ab6761610000e5eba1b1a48354e9a91fef58f651",
-    this.name = "DefaultName",
-    this.iconData = Icons.remove_circle,
-    this.removePlayer,
-    this.enableKicking = true,
+    required this.playerInstance,
+    this.onRemove,
   });
 
   @override
@@ -661,8 +654,9 @@ class PlayerListing extends StatefulWidget {
 class _PlayerListingState extends State<PlayerListing> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+
+    widget.enableKicking = (localUserID != widget.playerInstance.user_id);
   }
 
   @override
@@ -678,7 +672,7 @@ class _PlayerListingState extends State<PlayerListing> {
         children: [
           ClipOval(
             child: Image.network(
-              widget.imageUrl,
+              widget.playerInstance.image,
               width: 35,
               height: 35,
               fit: BoxFit.cover,
@@ -687,7 +681,7 @@ class _PlayerListingState extends State<PlayerListing> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              widget.name,
+              widget.playerInstance.display_name,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -707,7 +701,7 @@ class _PlayerListingState extends State<PlayerListing> {
                         return CupertinoAlertDialog(
                           title: Text("Confirm"),
                           content: Text(
-                              "Are you sure you want to kick ${widget.name} from the lobby?"),
+                              "Are you sure you want to kick ${widget.playerInstance.display_name} from the lobby?"),
                           actions: [
                             CupertinoDialogAction(
                               child: Text(
@@ -725,8 +719,7 @@ class _PlayerListingState extends State<PlayerListing> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  // players.remove(widget.name);
-                                  widget.removePlayer?.call(widget.name);
+                                  widget.onRemove?.call(widget.playerInstance);
                                 });
                                 Navigator.pop(context);
                               },

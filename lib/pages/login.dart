@@ -5,11 +5,25 @@ import 'dart:async';
 import '../credentials.dart';
 import 'lobby.dart';
 import 'package:oauth2_client/spotify_oauth2_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const scope = 'user-read-private user-read-email';
 
 String? myToken;
 String? myRefreshToken;
+
+Future<void> loadToken() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  myToken = prefs.getString('accessToken');
+  myRefreshToken = prefs.getString('refreshToken');
+
+  if (myToken != null) {
+    print("Loaded Spotify Token ✅ -> " + myToken.toString());
+  } else {
+    print("No token found, user needs to log in.");
+    // Optionally, you can call _login() here if you want to prompt the user to log in
+  }
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -20,7 +34,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   @override
-  String loginMessage = 'Login Using Spotify';
+  String loginMessage = 'Login';
   String debugMessage = 'DEBUG';
 
   @override
@@ -65,6 +79,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    await loadToken();
+
+    if (myToken != null && myToken != '') return;
+
     AccessTokenResponse? accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
       customUriScheme: 'playlistpursuit',
@@ -93,6 +111,11 @@ class _LoginPageState extends State<LoginPage> {
     // Global variables
     myToken = accessToken.accessToken;
     myRefreshToken = accessToken.refreshToken;
+
+    // Save tokens to shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('accessToken', myToken ?? '');
+    await prefs.setString('refreshToken', myRefreshToken ?? '');
 
     print("Acquired Spotify Token ✅ -> " + myToken.toString());
   }

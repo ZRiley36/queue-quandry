@@ -46,10 +46,9 @@ class _GuessingPageState extends State<GuessingPage> {
   int songLength = 5;
 
   // Fields (to be mutated by our backend)
-  int guiltyPlayer = 0;
+  MyPlayer guiltyPlayer = playerList[0];
 
   // Local fields
-  double _progressValue = 0.0;
   bool correctGuess = false;
   int guessedPlayer = -1;
 
@@ -59,7 +58,7 @@ class _GuessingPageState extends State<GuessingPage> {
   void initState() {
     super.initState();
 
-    for (int i = 0; i < players.entries.length; i++) {
+    for (int i = 0; i < playerList.length; i++) {
       buttonsPressed.add(false);
     }
 
@@ -70,14 +69,13 @@ class _GuessingPageState extends State<GuessingPage> {
   void _navigateToNextPage() {
     if (correctGuess) {
       int idx = -1;
-      for (int i = 0; i < players.entries.length; i++) {
-        if (players.entries.elementAt(i).key == myName) {
+      for (int i = 0; i < playerList.length; i++) {
+        if (playerList[i].user_id == localUserID) {
           // Retrieve the current value and add 10 to it
-          int currentValue = players.entries.elementAt(i).value;
-          players[myName] = currentValue + 10;
+          playerList[i].score += 10;
           idx = i;
 
-          if (players.entries.elementAt(idx).value >= winningScore) {
+          if (playerList[i].score >= winningScore) {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -95,6 +93,7 @@ class _GuessingPageState extends State<GuessingPage> {
         MaterialPageRoute(
           builder: (context) => ResultPage(
             isCorrect: correctGuess,
+            guiltyPlayer: guiltyPlayer,
           ),
         ),
       );
@@ -109,7 +108,7 @@ class _GuessingPageState extends State<GuessingPage> {
 
       buttonsPressed[buttonIndex] = true;
 
-      if (buttonIndex == guiltyPlayer) {
+      if (buttonIndex == playerList.indexOf(guiltyPlayer)) {
         correctGuess = true;
       } else {
         correctGuess = false;
@@ -173,8 +172,8 @@ class _GuessingPageState extends State<GuessingPage> {
                           color: Colors.white,
                           fontWeight: FontWeight.normal)),
                   const SizedBox(height: 20),
-                  for (int i = 0; i < players.entries.length; i++)
-                    if (players.entries.elementAt(i).key != myName)
+                  for (int i = 0; i < playerList.length; i++)
+                    if (playerList[i].user_id != localUserID)
                       Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
@@ -190,7 +189,7 @@ class _GuessingPageState extends State<GuessingPage> {
                                   });
                                 },
                                 child: Text(
-                                  players.entries.elementAt(i).key,
+                                  playerList[i].display_name,
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
@@ -333,8 +332,11 @@ class _TimerBarState extends State<TimerBar> {
 }
 
 class ResultPage extends StatefulWidget {
-  final bool isCorrect; // Step 1: Add the isCorrect parameter
-  const ResultPage({Key? key, required this.isCorrect}) : super(key: key);
+  final bool isCorrect;
+  final MyPlayer guiltyPlayer;
+  const ResultPage(
+      {Key? key, required this.isCorrect, required this.guiltyPlayer})
+      : super(key: key);
 
   @override
   _ResultPageState createState() => _ResultPageState();
@@ -342,7 +344,7 @@ class ResultPage extends StatefulWidget {
 
 class _ResultPageState extends State<ResultPage> {
   late final bool isCorrect;
-  final String correctChoice = 'Player_1';
+  late String correctChoice;
 
   bool playerWon = false;
 
@@ -350,6 +352,7 @@ class _ResultPageState extends State<ResultPage> {
   void initState() {
     super.initState();
     isCorrect = widget.isCorrect;
+    correctChoice = widget.guiltyPlayer.display_name;
   }
 
   void _navigateToNextPage() {
@@ -411,14 +414,14 @@ class _ResultPageState extends State<ResultPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 20),
-          for (int i = 0; i < players.entries.length; i++)
+          for (int i = 0; i < playerList.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: MediaQuery.of(context).size.height * 0.06,
                   decoration: BoxDecoration(
-                    color: players.entries.elementAt(i).key == myName
+                    color: playerList[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -432,7 +435,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            players.entries.elementAt(i).key,
+                            playerList[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -446,8 +449,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            players[players.entries.elementAt(i).key]
-                                .toString(),
+                            playerList[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -538,14 +540,14 @@ class _FinishPageState extends State<FinishPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 35),
-          for (int i = 0; i < players.entries.length; i++)
+          for (int i = 0; i < playerList.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: players.entries.elementAt(i).key == myName
+                    color: playerList[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -559,7 +561,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            players.entries.elementAt(i).key,
+                            playerList[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -573,8 +575,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            players[players.entries.elementAt(i).key]
-                                .toString(),
+                            playerList[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
