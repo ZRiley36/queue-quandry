@@ -2,17 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:oauth2_client/access_token_response.dart';
 import 'package:queue_quandry/styles.dart';
 import 'dart:async';
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:spotify_sdk/spotify_sdk.dart';
-import '../main.dart';
 import '../credentials.dart';
 import 'lobby.dart';
 import 'package:oauth2_client/spotify_oauth2_client.dart';
-import 'package:flutter_web_auth/flutter_web_auth.dart';
-import 'dart:convert';
 
 const scope = 'user-read-private user-read-email';
 
@@ -38,19 +30,21 @@ class _LoginPageState extends State<LoginPage> {
         body: Center(
             child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 50),
-                child:
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Container(
-                    height: 50,
-                    child: Expanded(
-                      child: ElevatedButton(
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
                         onPressed: () async {
-                          _login().then((value) => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => LobbyPage(),
-                                ),
-                              )); // Handle Spotify login action
+                          _login().then(
+                              (value) => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LobbyPage(),
+                                    ),
+                                  ), onError: (error) {
+                            print(
+                                "Serious login failure. Aborting [ERROR: ${error.toString()}]");
+                          }); // Handle Spotify login action
                         },
                         style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.all<Color>(
@@ -66,56 +60,21 @@ class _LoginPageState extends State<LoginPage> {
                                     fontSize: 18)),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  // SizedBox(
-                  //   height: 10,
-                  // ),
-                  // Container(
-                  //   height: 50,
-                  //   child: Expanded(
-                  //     child: ElevatedButton(
-                  //       onPressed: () {
-                  //         Navigator.push(
-                  //           context,
-                  //           MaterialPageRoute(
-                  //             builder: (context) => LobbyPage(),
-                  //           ),
-                  //         );
-                  //       },
-                  //       style: ButtonStyle(
-                  //         backgroundColor: MaterialStateProperty.all<Color>(
-                  //             Color.fromARGB(
-                  //                 255, 255, 136, 0)), // Spotify green color
-                  //       ),
-                  //       child: Row(
-                  //         mainAxisAlignment: MainAxisAlignment.center,
-                  //         children: [
-                  //           Text(debugMessage,
-                  //               style: TextStyle(
-                  //                   color: Colors.white,
-                  //                   fontWeight: FontWeight.bold,
-                  //                   fontSize: 18)),
-                  //         ],
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
-                  // SizedBox(
-                  //   height: MediaQuery.of(context).size.height * 0.18,
-                  // )
-                ]))));
+                      )
+                    ]))));
   }
 
   Future<void> _login() async {
+    print("Attempting login.");
+
     AccessTokenResponse accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
-      customUriScheme: 'queuequandary',
+      customUriScheme: 'playlistpursuit',
       //Must correspond to the AndroidManifest's "android:scheme" attribute
       redirectUri:
           spotifyRedirectUri, //Can be any URI, but the scheme part must correspond to the customeUriScheme
     );
+
     var authResp = await client
         .requestAuthorization(clientId: spotifyClientId, customParams: {
       'show_dialog': 'true'
@@ -128,6 +87,8 @@ class _LoginPageState extends State<LoginPage> {
     ]);
     var authCode = authResp.code;
 
+    print("Acquired authCode");
+
     accessToken = await client.requestAccessToken(
         code: authCode.toString(),
         clientId: spotifyClientId,
@@ -137,6 +98,6 @@ class _LoginPageState extends State<LoginPage> {
     myToken = accessToken.accessToken;
     myRefreshToken = accessToken.refreshToken;
 
-    print("Spotify Token: " + myToken.toString());
+    print("Acquired Spotify Token ✅ -> " + myToken.toString());
   }
 }
