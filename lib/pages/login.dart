@@ -174,7 +174,8 @@ class _LoginPageState extends State<LoginPage> {
       'user-read-playback-state',
       'user-modify-playback-state',
       'user-read-currently-playing',
-      'user-read-email'
+      'user-read-email',
+      'user-top-read'
     ]);
     var authCode = authResp.code;
 

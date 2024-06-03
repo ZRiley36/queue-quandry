@@ -343,17 +343,27 @@ class _QueuePageState extends State<QueuePage> {
   TextEditingController _controller = TextEditingController();
 
   bool isSearching = false;
+  Future<List<String>>? _fetchTopSongsFuture;
+  List<String> topSongs = [];
+
+  Future<List<String>> fetchTopSongs() async {
+    return await getTopTracks(myToken);
+  }
 
   @override
   void initState() {
     super.initState();
 
     songsAdded = 0;
+    _fetchTopSongsFuture = fetchTopSongs();
   }
 
-  Future<void> addSongsToQueue() async {
-    for (int i = 0; i < songQueue.length; i++) {
-      addToQueue(songQueue[i], myToken);
+  Future<void> addSongsToQueue(List<String> l) async {
+    for (int i = 0; i < l.length; i++) {
+      var temp = Track(l[i]);
+      await temp.fetchTrackData();
+
+      addToQueue(temp.track_uri, myToken);
     }
   }
 
@@ -427,7 +437,7 @@ class _QueuePageState extends State<QueuePage> {
                 : Padding(
                     padding: EdgeInsets.only(bottom: 20),
                     child: Text(
-                      "Recent songs",
+                      "Your top songs",
                       textAlign: TextAlign.left,
                       style: TextStyle(
                         color: Colors.white,
@@ -442,17 +452,32 @@ class _QueuePageState extends State<QueuePage> {
             isSearching
                 ? Container()
                 : Expanded(
-                    child: ListView.builder(
-                      itemCount: 5,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: SongListing(
-                            track: Track('1kyU60IXfHJrgpNPUYtYJX'),
-                            onIncrement: incrementSongsAdded,
-                            onDecrement: decrementSongsAdded,
-                          ),
-                        );
+                    child: FutureBuilder(
+                      future: _fetchTopSongsFuture,
+                      builder: (context, AsyncSnapshot<List<String>> snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else {
+                          if (snapshot.hasError) {
+                            return Center(
+                                child: Text('Error fetching top songs'));
+                          } else {
+                            return ListView.builder(
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 8),
+                                  child: SongListing(
+                                    track: Track(snapshot.data![index]),
+                                    onIncrement: incrementSongsAdded,
+                                    onDecrement: decrementSongsAdded,
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        }
                       },
                     ),
                   ),
@@ -462,7 +487,7 @@ class _QueuePageState extends State<QueuePage> {
                 isSearching
                     ? ""
                     : "Queue " +
-                        (songsPerPlayer - songsAdded).toString() +
+                        (widget.songsPerPlayer - songsAdded).toString() +
                         " more songs",
                 style: TextStyle(
                   color: Colors.white,
@@ -475,9 +500,9 @@ class _QueuePageState extends State<QueuePage> {
                 ? Container()
                 : Center(
                     child: ElevatedButton(
-                      onPressed: () {
-                        addSongsToQueue();
-
+                      onPressed: () async {
+                        List<String> topSongs = await _fetchTopSongsFuture!;
+                        addSongsToQueue(songQueue);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -623,11 +648,10 @@ class _SongListingState extends State<SongListing> {
 
                       isChecked = !isChecked;
                       if (isChecked) {
-                        songQueue.add("spotify:track:${widget.track.track_id}");
+                        songQueue.add(widget.track.track_id);
                         widget.onIncrement?.call();
                       } else {
-                        songQueue
-                            .remove("spotify:track:${widget.track.track_id}");
+                        songQueue.remove(widget.track.track_id);
                         widget.onDecrement?.call();
                       }
                     });

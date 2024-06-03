@@ -7,6 +7,7 @@ import 'package:spotify_sdk/spotify_sdk.dart';
 
 class Track {
   final String track_id;
+  late String track_uri;
   late String imageUrl = "";
   late String name = "";
   late String artist = "";
@@ -28,6 +29,7 @@ class Track {
       name = data['name'];
       artist = data['artists'][0]['name'];
       imageUrl = data['album']['images'][0]['url'];
+      track_uri = data['uri'];
     } else {
       throw Exception('Failed to load track');
     }
@@ -117,9 +119,36 @@ Future<void> addToQueue(String? trackUri, String? accessToken) async {
   );
 
   if (response.statusCode == 204) {
-    print('Track added to queue successfully');
+    // print('Track added to queue successfully');
   } else {
     print(
         'Failed to add track to queue: ${response.statusCode}, ${response.body}');
+  }
+}
+
+Future<List<String>> getTopTracks(String? accessToken) async {
+  await ensureTokenIsValid();
+
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me/top/tracks'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    var temp = json.decode(response.body);
+
+    List<String> topSongs = [];
+
+    for (int i = 0; i < 5; i++) {
+      topSongs.add(temp['items'][i]['id']);
+    }
+
+    // print(topSongs);
+    return topSongs;
+  } else {
+    print('Failed to fetch top tracks.');
+    return [];
   }
 }
