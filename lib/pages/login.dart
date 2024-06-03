@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oauth2_client/access_token_response.dart';
 import 'package:queue_quandry/styles.dart';
+import 'package:spotify_sdk/spotify_sdk.dart';
 import 'dart:async';
 import '../credentials.dart';
 import 'lobby.dart';
@@ -12,6 +13,54 @@ const scope = 'user-read-private user-read-email';
 String? myToken;
 String? myRefreshToken;
 DateTime? tokenExpiration;
+
+Future<void> ensureTokenIsValid() async {
+  if (myToken == null ||
+      tokenExpiration == null ||
+      DateTime.now().isAfter(tokenExpiration!)) {
+    bool refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      throw Exception("Unable to refresh token");
+    }
+  }
+}
+
+Future<bool> refreshAccessToken() async {
+  if (myRefreshToken == null) {
+    return false;
+  }
+
+  SpotifyOAuth2Client client = SpotifyOAuth2Client(
+    customUriScheme: 'playlistpursuit',
+    redirectUri: spotifyRedirectUri,
+  );
+
+  try {
+    AccessTokenResponse accessToken = await client.refreshToken(
+      myRefreshToken!,
+      clientId: spotifyClientId,
+      clientSecret: spotifyClientSecret,
+    );
+
+    // Update global variables with the new token details
+    myToken = accessToken.accessToken;
+    myRefreshToken = accessToken.refreshToken ??
+        myRefreshToken; // Refresh token may not change
+    tokenExpiration = accessToken.expirationDate;
+
+    // Save new tokens to shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('accessToken', myToken!);
+    await prefs.setString('refreshToken', myRefreshToken!);
+    await prefs.setString('expirationDate', tokenExpiration!.toIso8601String());
+
+    print("Token refreshed successfully ✅ -> " + myToken.toString());
+    return true;
+  } catch (error) {
+    print("Failed to refresh token [ERROR: ${error.toString()}]");
+    return false;
+  }
+}
 
 Future<void> loadToken() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -53,6 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       ElevatedButton(
                         onPressed: () async {
+                          // alternativeAuth();
                           authenticateUser().then(
                               (value) => Navigator.push(
                                     context,
@@ -82,6 +132,11 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       )
                     ]))));
+  }
+
+  Future<void> alternativeAuth() async {
+    await SpotifySdk.connectToSpotifyRemote(
+        clientId: spotifyClientId, redirectUrl: spotifyRedirectUri);
   }
 
   Future<void> authenticateUser() async {
@@ -140,43 +195,5 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setString('expirationDate', tokenExpiration!.toIso8601String());
 
     print("Acquired Spotify Token ✅ -> " + myToken.toString());
-  }
-
-  Future<bool> refreshAccessToken() async {
-    if (myRefreshToken == null) {
-      return false;
-    }
-
-    SpotifyOAuth2Client client = SpotifyOAuth2Client(
-      customUriScheme: 'playlistpursuit',
-      redirectUri: spotifyRedirectUri,
-    );
-
-    try {
-      AccessTokenResponse accessToken = await client.refreshToken(
-        myRefreshToken!,
-        clientId: spotifyClientId,
-        clientSecret: spotifyClientSecret,
-      );
-
-      // Update global variables with the new token details
-      myToken = accessToken.accessToken;
-      myRefreshToken = accessToken.refreshToken ??
-          myRefreshToken; // Refresh token may not change
-      tokenExpiration = accessToken.expirationDate;
-
-      // Save new tokens to shared preferences
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('accessToken', myToken!);
-      await prefs.setString('refreshToken', myRefreshToken!);
-      await prefs.setString(
-          'expirationDate', tokenExpiration!.toIso8601String());
-
-      print("Token refreshed successfully ✅ -> " + myToken.toString());
-      return true;
-    } catch (error) {
-      print("Failed to refresh token [ERROR: ${error.toString()}]");
-      return false;
-    }
   }
 }

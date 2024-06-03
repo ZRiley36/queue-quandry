@@ -12,6 +12,7 @@ import '../main.dart';
 import 'package:logger/logger.dart';
 
 List<MyPlayer> playerList = [];
+List<String> songQueue = [];
 
 int songsPerPlayer = 3;
 int songsAdded = 0;
@@ -109,8 +110,6 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   Widget _createAllPlayerListings() {
-    print("creating all player listings");
-
     return ListView.builder(
       shrinkWrap: true,
       padding: EdgeInsets.all(0),
@@ -352,6 +351,12 @@ class _QueuePageState extends State<QueuePage> {
     songsAdded = 0;
   }
 
+  Future<void> addSongsToQueue() async {
+    for (int i = 0; i < songQueue.length; i++) {
+      addToQueue(songQueue[i], myToken);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -443,6 +448,7 @@ class _QueuePageState extends State<QueuePage> {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: SongListing(
+                            songURI: "temp",
                             onIncrement: incrementSongsAdded,
                             onDecrement: decrementSongsAdded,
                           ),
@@ -470,6 +476,8 @@ class _QueuePageState extends State<QueuePage> {
                 : Center(
                     child: ElevatedButton(
                       onPressed: () {
+                        addSongsToQueue();
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -515,6 +523,7 @@ class SongListing extends StatefulWidget {
   final String name;
   final IconData iconData;
   final String artist;
+  final String songURI;
   final Function()? onIncrement;
   final Function()? onDecrement;
 
@@ -524,6 +533,7 @@ class SongListing extends StatefulWidget {
     this.name = "What Once Was",
     this.iconData = Icons.favorite,
     this.artist = "Her's",
+    required this.songURI,
     this.onIncrement,
     this.onDecrement,
   });
@@ -609,8 +619,10 @@ class _SongListingState extends State<SongListing> {
 
                 isChecked = !isChecked;
                 if (isChecked) {
+                  songQueue.add("spotify:track:5ClqcvP4dYDDX6Zv3jPQD1");
                   widget.onIncrement?.call();
                 } else {
+                  songQueue.remove("spotify:track:5ClqcvP4dYDDX6Zv3jPQD1");
                   widget.onDecrement?.call();
                 }
               });

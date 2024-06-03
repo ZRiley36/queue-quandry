@@ -12,24 +12,6 @@ import 'dart:convert';
 final int winningScore = 10;
 bool musicPlaying = false;
 
-Future<void> _pausePlayback() async {
-  await http.put(
-    Uri.parse('https://api.spotify.com/v1/me/player/pause'),
-    headers: {
-      'Authorization': 'Bearer $myToken',
-    },
-  );
-}
-
-Future<void> _resumePlayback() async {
-  await http.put(
-    Uri.parse('https://api.spotify.com/v1/me/player/play'),
-    headers: {
-      'Authorization': 'Bearer $myToken',
-    },
-  );
-}
-
 class GuessingPage extends StatefulWidget {
   const GuessingPage({Key? key}) : super(key: key);
 
@@ -121,10 +103,10 @@ class _GuessingPageState extends State<GuessingPage> {
       musicPlaying = !musicPlaying;
     });
 
-    // if (musicPlaying == false)
-    //   _pausePlayback();
-    // else
-    //   _resumePlayback();
+    if (musicPlaying == false)
+      pausePlayback();
+    else
+      resumePlayback();
   }
 
   @override
