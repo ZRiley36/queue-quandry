@@ -5,6 +5,35 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:spotify_sdk/spotify_sdk.dart';
 
+class Track {
+  final String track_id;
+  late String imageUrl = "";
+  late String name = "";
+  late String artist = "";
+
+  Track(this.track_id);
+
+  Future<void> fetchTrackData() async {
+    final String url = 'https://api.spotify.com/v1/tracks/$track_id';
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $myToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      name = data['name'];
+      artist = data['artists'][0]['name'];
+      imageUrl = data['album']['images'][0]['url'];
+    } else {
+      throw Exception('Failed to load track');
+    }
+  }
+}
+
 class MyPlayer {
   final String user_id;
   late String display_name;
@@ -74,6 +103,8 @@ Future<void> resumePlayback() async {
 }
 
 Future<void> addToQueue(String? trackUri, String? accessToken) async {
+  await ensureTokenIsValid();
+
   final url =
       Uri.parse('https://api.spotify.com/v1/me/player/queue?uri=$trackUri');
 

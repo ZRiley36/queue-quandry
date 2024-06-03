@@ -448,7 +448,7 @@ class _QueuePageState extends State<QueuePage> {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: SongListing(
-                            songURI: "temp",
+                            track: Track('1kyU60IXfHJrgpNPUYtYJX'),
                             onIncrement: incrementSongsAdded,
                             onDecrement: decrementSongsAdded,
                           ),
@@ -519,21 +519,12 @@ class _QueuePageState extends State<QueuePage> {
 }
 
 class SongListing extends StatefulWidget {
-  final String imageUrl;
-  final String name;
-  final IconData iconData;
-  final String artist;
-  final String songURI;
+  final Track track;
   final Function()? onIncrement;
   final Function()? onDecrement;
 
   SongListing({
-    this.imageUrl =
-        "https://images.genius.com/69c8990d3a6b135efe69859e18287d1d.1000x1000x1.jpg",
-    this.name = "What Once Was",
-    this.iconData = Icons.favorite,
-    this.artist = "Her's",
-    required this.songURI,
+    required this.track,
     this.onIncrement,
     this.onDecrement,
   });
@@ -546,104 +537,121 @@ class _SongListingState extends State<SongListing> {
   bool isChecked = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        color: Color.fromARGB(255, 41, 41, 41),
-      ),
-      padding: EdgeInsets.all(10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.network(
-              widget.imageUrl,
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
+    return FutureBuilder<void>(
+      future: widget.track.fetchTrackData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              color: Color.fromARGB(255, 41, 41, 41),
             ),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  widget.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.network(
+                    widget.track.imageUrl,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                Text(
-                  widget.artist,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 14,
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.track.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        widget.track.artist,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (songsAdded + 1 > songsPerPlayer &&
+                          isChecked == false) {
+                        showCupertinoDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return CupertinoAlertDialog(
+                              title: Text("Queue Limit Reached"),
+                              content: Text(
+                                  "You can't add more than $songsPerPlayer songs."),
+                              actions: <Widget>[
+                                CupertinoDialogAction(
+                                  child: Text("OK",
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        return;
+                      }
+
+                      isChecked = !isChecked;
+                      if (isChecked) {
+                        songQueue.add("spotify:track:${widget.track.track_id}");
+                        widget.onIncrement?.call();
+                      } else {
+                        songQueue
+                            .remove("spotify:track:${widget.track.track_id}");
+                        widget.onDecrement?.call();
+                      }
+                    });
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isChecked ? Colors.green : Colors.white,
+                    ),
+                    child: Icon(
+                      isChecked ? Icons.check : Icons.add,
+                      color: isChecked ? Colors.white : Colors.black,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 3),
               ],
             ),
-          ),
-          SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                if (songsAdded + 1 > songsPerPlayer && isChecked == false) {
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return CupertinoAlertDialog(
-                        title: Text("Queue Limit Reached"),
-                        content: Text(
-                            "You can't add more than $songsPerPlayer songs."),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                            child: Text(
-                              "OK",
-                              style: TextStyle(color: Colors.redAccent),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  return;
-                }
-
-                isChecked = !isChecked;
-                if (isChecked) {
-                  songQueue.add("spotify:track:5ClqcvP4dYDDX6Zv3jPQD1");
-                  widget.onIncrement?.call();
-                } else {
-                  songQueue.remove("spotify:track:5ClqcvP4dYDDX6Zv3jPQD1");
-                  widget.onDecrement?.call();
-                }
-              });
-            },
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isChecked ? Colors.green : Colors.white,
-              ),
-              child: Icon(
-                isChecked ? Icons.check : Icons.add,
-                color: isChecked ? Colors.white : Colors.black,
-                size: 20,
-              ),
-            ),
-          ),
-          SizedBox(width: 3),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }
