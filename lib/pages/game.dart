@@ -10,10 +10,10 @@ import 'package:spotify_sdk/spotify_sdk.dart';
 import 'dart:convert';
 
 final int winningScore = 10;
-bool musicPlaying = false;
+bool musicPlaying = true;
 
 class GuessingPage extends StatefulWidget {
-  const GuessingPage({Key? key}) : super(key: key);
+  GuessingPage();
 
   @override
   _GuessingPageState createState() => _GuessingPageState();
@@ -25,7 +25,8 @@ class _GuessingPageState extends State<GuessingPage> {
   String songArtist = "Jimi Hendrix";
   String albumArt =
       'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg';
-  int songLength = 5;
+  late int songLength;
+  bool _isSongLengthInitialized = false;
 
   // Fields (to be mutated by our backend)
   MyPlayer guiltyPlayer = playerList[0];
@@ -36,6 +37,11 @@ class _GuessingPageState extends State<GuessingPage> {
 
   List<bool> buttonsPressed = [];
 
+  Future<int> getSongDuration() async {
+    int time_ms = await getCurrentlyPlayingTrackDuration();
+    return (time_ms / 1000).toInt();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -44,8 +50,14 @@ class _GuessingPageState extends State<GuessingPage> {
       buttonsPressed.add(false);
     }
 
-    // TODO start music playback here
-    musicPlaying = true;
+    _initializeSongLength();
+  }
+
+  void _initializeSongLength() async {
+    songLength = await getSongDuration();
+    setState(() {
+      _isSongLengthInitialized = true;
+    });
   }
 
   void _navigateToNextPage() {
@@ -202,38 +214,41 @@ class _GuessingPageState extends State<GuessingPage> {
               ),
             ),
             Expanded(
-                child: Container(
-                    alignment: Alignment.bottomCenter,
-                    child: Column(
-                      children: [
-                        TimerBar(
-                          backgroundColor: Color(0xFF9d40e3),
-                          progressColor: Colors.white,
-                          period: Duration(seconds: songLength),
-                          onComplete: _navigateToNextPage,
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _pause();
-                            });
-                          },
-                          icon: musicPlaying
-                              ? Icon(Icons.pause_rounded,
-                                  color: Colors.white, size: 80)
-                              : Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 80,
-                                ),
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                        ),
-                        SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.05)
-                      ],
-                      mainAxisAlignment: MainAxisAlignment.end,
-                    )))
+              child: Container(
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _isSongLengthInitialized
+                        ? TimerBar(
+                            backgroundColor: Color(0xFF9d40e3),
+                            progressColor: Colors.white,
+                            period: Duration(seconds: songLength),
+                            onComplete: _navigateToNextPage,
+                          )
+                        : Container(), // Placeholder widget when songLength is not initialized
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _pause();
+                        });
+                      },
+                      icon: musicPlaying
+                          ? Icon(Icons.pause_rounded,
+                              color: Colors.white, size: 80)
+                          : Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 80,
+                            ),
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.05)
+                  ],
+                ),
+              ),
+            )
           ],
         ),
       ),

@@ -11,6 +11,7 @@ class Track {
   late String imageUrl = "";
   late String name = "";
   late String artist = "";
+  late int duration_ms = 0;
 
   Track(this.track_id);
 
@@ -30,6 +31,7 @@ class Track {
       artist = data['artists'][0]['name'];
       imageUrl = data['album']['images'][0]['url'];
       track_uri = data['uri'];
+      duration_ms = data['duration_ms'];
     } else {
       throw Exception('Failed to load track');
     }
@@ -126,6 +128,26 @@ Future<void> addToQueue(String? trackUri, String? accessToken) async {
   }
 }
 
+Future<void> startNextTrack() async {
+  await ensureTokenIsValid();
+
+  final url = Uri.parse('https://api.spotify.com/v1/me/player/next');
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  if (response.statusCode == 204) {
+    print("next track");
+  } else {
+    print("failed to skip track");
+  }
+}
+
 Future<List<String>> getTopTracks(String? accessToken) async {
   await ensureTokenIsValid();
 
@@ -151,4 +173,19 @@ Future<List<String>> getTopTracks(String? accessToken) async {
     print('Failed to fetch top tracks.');
     return [];
   }
+}
+
+Future<int> getCurrentlyPlayingTrackDuration() async {
+  await ensureTokenIsValid();
+
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me/player/currently-playing'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  var body = json.decode(response.body);
+  return body['item']['duration_ms'];
+  // print("Here is the track:" + body['item']);
 }

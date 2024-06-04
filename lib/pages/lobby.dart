@@ -365,6 +365,8 @@ class _QueuePageState extends State<QueuePage> {
 
       addToQueue(temp.track_uri, myToken);
     }
+
+    await startNextTrack();
   }
 
   @override
