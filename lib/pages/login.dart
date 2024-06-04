@@ -162,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
     // Proceed with re-authentication if no valid token or refresh failed
     AccessTokenResponse? accessToken;
     SpotifyOAuth2Client client = SpotifyOAuth2Client(
-      customUriScheme: 'playlistpursuit',
+      customUriScheme: 'com.playlistpursuit',
       redirectUri: spotifyRedirectUri,
     );
 
