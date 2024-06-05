@@ -1,29 +1,46 @@
 import 'package:flutter/material.dart';
-import '../styles.dart';
-import '../main.dart';
+import 'package:queue_quandry/pages/login.dart';
+import 'package:queue_quandry/styles.dart';
 import 'game.dart';
+import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/cupertino.dart';
-import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../spotify-api.dart';
+import '../main.dart';
+import 'package:logger/logger.dart';
 
-Map<String, int> players = {
-  'Player_1': 0,
-  'Player_2': 0,
-  'Player_3': 0,
-  'Me': 0,
-};
+List<MyPlayer> playerList = [];
+List<String> songQueue = [];
 
 int songsPerPlayer = 3;
 int songsAdded = 0;
 
-final String myName = 'Me';
+String localUserID = "DefaultUser";
+
+Future<String> getLocalUserID() async {
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  return json.decode(response.body)['id'];
+}
 
 class LobbyPage extends StatefulWidget {
   final int numPlayers;
   final int songsPerPlayer;
+  final bool reset;
 
-  const LobbyPage({Key? key, this.numPlayers = 2, this.songsPerPlayer = 1})
-      : super(key: key);
+  const LobbyPage({
+    Key? key,
+    this.numPlayers = 2,
+    this.songsPerPlayer = 1,
+    required this.reset,
+  }) : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
@@ -32,17 +49,85 @@ class LobbyPage extends StatefulWidget {
 class _LobbyPageState extends State<LobbyPage> {
   late int _numPlayers;
 
+  Future<void> addLocalPlayer() async {
+    localUserID = await getLocalUserID();
+
+    setState(() {
+      playerList.add(MyPlayer(localUserID));
+    });
+  }
+
+  Future<void> addHeadlessPlayer(String id) async {
+    setState(() {
+      playerList.add(MyPlayer(id));
+    });
+  }
+
+  Future<void> addRemotePlayer(String incomingID) async {
+    setState(() {
+      playerList.add(MyPlayer(incomingID));
+    });
+  }
+
+  void resetLobby() {
+    playerList.clear();
+  }
+
   @override
   void initState() {
     super.initState();
     _numPlayers = widget.numPlayers;
+
+    // reset the lobby
+    if (widget.reset) resetLobby();
+
+    // populate the lobby
+    addLocalPlayer();
+    // DEBUG: add more players
+    addHeadlessPlayer('abrawolf');
+    addHeadlessPlayer('tommyryan2002');
+    addHeadlessPlayer('nickwaizenegger');
   }
 
-  void removePlayer() {
-    setState(() {});
+  void removePlayer(MyPlayer playerInstance) {
+    setState(() {
+      String display_name = playerInstance.display_name;
+
+      playerList.remove(playerInstance);
+
+      print("🔴 Removed player $display_name from lobby.");
+    });
   }
 
-  @override
+  Future<void> _initAllPlayers() async {
+    await Future.forEach(playerList, (MyPlayer instance) async {
+      if (!instance.isInitialized) {
+        await instance.initPlayer();
+        String display_name = instance.display_name;
+        print("🟢 Player $display_name joined lobby.");
+      }
+    });
+  }
+
+  Widget _createAllPlayerListings() {
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: EdgeInsets.all(0),
+      itemCount: playerList.length,
+      itemBuilder: (BuildContext context, int index) {
+        final playerInstance = playerList[index];
+
+        return Padding(
+          padding: EdgeInsets.only(top: 6, bottom: 6),
+          child: PlayerListing(
+            playerInstance: playerInstance,
+            onRemove: removePlayer,
+          ),
+        );
+      },
+    );
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -59,10 +144,9 @@ class _LobbyPageState extends State<LobbyPage> {
       ),
       backgroundColor: spotifyBlack,
       body: Padding(
-        padding: EdgeInsets.only(left: 18, right: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          padding: EdgeInsets.only(left: 18, right: 18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text(
               'Queue Quandary',
               style: TextStyle(
@@ -86,121 +170,116 @@ class _LobbyPageState extends State<LobbyPage> {
             SizedBox(
               height: 5,
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.all(0),
-                      itemCount: players.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final entry = players.entries.toList()[index];
-                        return Padding(
-                          padding: EdgeInsets.only(top: 6, bottom: 6),
-                          child: PlayerListing(
-                            name: entry.key,
-                            removePlayer: removePlayer,
-                            enableKicking: entry.key != myName,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            Container(
+                child: FutureBuilder<void>(
+              future:
+                  _initAllPlayers(), // The future passed from the parent widget
+              builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator(); // Show a loading spinner
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}'); // Handle errors
+                } else {
+                  return _createAllPlayerListings();
+                }
+              },
+            )),
             SizedBox(
               height: 5,
             ),
             ElevatedButton(
-                onPressed: () {
-                  _share();
-                },
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.25,
-                  child: Row(
-                    children: [
-                      Text(
-                        "Invite",
-                        style: TextStyle(color: Colors.black, fontSize: 18),
+              onPressed: () {
+                _share();
+              },
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.25,
+                child: Row(
+                  children: [
+                    Text(
+                      "Invite",
+                      style: TextStyle(color: Colors.black, fontSize: 18),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Container(
+                      height: 30,
+                      child: Icon(
+                        Icons.ios_share_outlined,
+                        color: Colors.black,
                       ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Container(
-                        height: 30,
-                        child: Icon(
-                          Icons.ios_share_outlined,
-                          color: Colors.black,
-                        ),
-                      )
-                    ],
-                    mainAxisAlignment: MainAxisAlignment.center,
-                  ),
-                )),
-            const Spacer(),
-            const Text(
-              "Songs Per Player",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18),
-            ),
-            Padding(
-              padding: EdgeInsets.only(
-                  top: 5, right: MediaQuery.of(context).size.width * 0.7),
-              child: _buildDropdown(
-                'Songs Per Player',
-                songsPerPlayer,
-                (value) {
-                  setState(() {
-                    songsPerPlayer = value!;
-                  });
-                },
+                    )
+                  ],
+                  mainAxisAlignment: MainAxisAlignment.center,
+                ),
               ),
             ),
-            Spacer(),
-            Center(
-              child: Column(
+            const Spacer(),
+            Column(
                 mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QueuePage(
-                            numPlayers: _numPlayers,
-                            songsPerPlayer: songsPerPlayer,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF9d40e3),
-                        minimumSize: Size(150, 50)),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          fontFamily: 'Gotham'),
+                  const Text(
+                    "Songs Per Player",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(
+                        top: 5, right: MediaQuery.of(context).size.width * 0.7),
+                    child: _buildDropdown(
+                      'Songs Per Player',
+                      songsPerPlayer,
+                      (value) {
+                        setState(() {
+                          songsPerPlayer = value!;
+                        });
+                      },
                     ),
                   ),
-                ],
-              ),
-            ),
-            Spacer()
-          ],
-        ),
-      ),
+                  if (playerList.length > 1)
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => QueuePage(
+                                    numPlayers: _numPlayers,
+                                    songsPerPlayer: songsPerPlayer,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF9d40e3),
+                                minimumSize: Size(150, 50)),
+                            child: const Text(
+                              'Continue',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20,
+                                  fontFamily: 'Gotham'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.05,
+                  )
+                ]),
+          ])),
+      // Container(
+      //   decoration: BoxDecoration(color: Colors.red),
+      //   height: MediaQuery.of(context).size.height * 0.2,
+      // ),
     );
   }
 
@@ -264,12 +343,30 @@ class _QueuePageState extends State<QueuePage> {
   TextEditingController _controller = TextEditingController();
 
   bool isSearching = false;
+  Future<List<String>>? _fetchTopSongsFuture;
+  List<String> topSongs = [];
+
+  Future<List<String>> fetchTopSongs() async {
+    return await getTopTracks(myToken);
+  }
 
   @override
   void initState() {
     super.initState();
 
     songsAdded = 0;
+    _fetchTopSongsFuture = fetchTopSongs();
+  }
+
+  Future<void> populateQueue() async {
+    for (int i = 0; i < songQueue.length; i++) {
+      var temp = Track(songQueue[i]);
+      await temp.fetchTrackData();
+
+      addToQueue(temp.track_uri, myToken);
+    }
+
+    await startNextTrack();
   }
 
   @override
@@ -342,7 +439,7 @@ class _QueuePageState extends State<QueuePage> {
                 : Padding(
                     padding: EdgeInsets.only(bottom: 20),
                     child: Text(
-                      "Recent songs",
+                      "Your top songs",
                       textAlign: TextAlign.left,
                       style: TextStyle(
                         color: Colors.white,
@@ -357,16 +454,32 @@ class _QueuePageState extends State<QueuePage> {
             isSearching
                 ? Container()
                 : Expanded(
-                    child: ListView.builder(
-                      itemCount: 5,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: SongListing(
-                            onIncrement: incrementSongsAdded,
-                            onDecrement: decrementSongsAdded,
-                          ),
-                        );
+                    child: FutureBuilder(
+                      future: _fetchTopSongsFuture,
+                      builder: (context, AsyncSnapshot<List<String>> snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else {
+                          if (snapshot.hasError) {
+                            return Center(
+                                child: Text('Error fetching top songs'));
+                          } else {
+                            return ListView.builder(
+                              itemCount: snapshot.data!.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 8),
+                                  child: SongListing(
+                                    track: Track(snapshot.data![index]),
+                                    onIncrement: incrementSongsAdded,
+                                    onDecrement: decrementSongsAdded,
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        }
                       },
                     ),
                   ),
@@ -376,7 +489,7 @@ class _QueuePageState extends State<QueuePage> {
                 isSearching
                     ? ""
                     : "Queue " +
-                        (songsPerPlayer - songsAdded).toString() +
+                        (widget.songsPerPlayer - songsAdded).toString() +
                         " more songs",
                 style: TextStyle(
                   color: Colors.white,
@@ -389,7 +502,9 @@ class _QueuePageState extends State<QueuePage> {
                 ? Container()
                 : Center(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        List<String> topSongs = await _fetchTopSongsFuture!;
+                        populateQueue();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -431,19 +546,12 @@ class _QueuePageState extends State<QueuePage> {
 }
 
 class SongListing extends StatefulWidget {
-  final String imageUrl;
-  final String name;
-  final IconData iconData;
-  final String artist;
+  final Track track;
   final Function()? onIncrement;
   final Function()? onDecrement;
 
   SongListing({
-    this.imageUrl =
-        "https://images.genius.com/69c8990d3a6b135efe69859e18287d1d.1000x1000x1.jpg",
-    this.name = "What Once Was",
-    this.iconData = Icons.favorite,
-    this.artist = "Her's",
+    required this.track,
     this.onIncrement,
     this.onDecrement,
   });
@@ -456,120 +564,132 @@ class _SongListingState extends State<SongListing> {
   bool isChecked = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        color: Color.fromARGB(255, 41, 41, 41),
-      ),
-      padding: EdgeInsets.all(10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.network(
-              widget.imageUrl,
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
+    return FutureBuilder<void>(
+      future: widget.track.fetchTrackData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              color: Color.fromARGB(255, 41, 41, 41),
             ),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  widget.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.network(
+                    widget.track.imageUrl,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                Text(
-                  widget.artist,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 14,
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.track.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        widget.track.artist,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (songsAdded + 1 > songsPerPlayer &&
+                          isChecked == false) {
+                        showCupertinoDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return CupertinoAlertDialog(
+                              title: Text("Queue Limit Reached"),
+                              content: Text(
+                                  "You can't add more than $songsPerPlayer songs."),
+                              actions: <Widget>[
+                                CupertinoDialogAction(
+                                  child: Text("OK",
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        return;
+                      }
+
+                      isChecked = !isChecked;
+                      if (isChecked) {
+                        songQueue.add(widget.track.track_id);
+                        widget.onIncrement?.call();
+                      } else {
+                        songQueue.remove(widget.track.track_id);
+                        widget.onDecrement?.call();
+                      }
+                    });
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isChecked ? Colors.green : Colors.white,
+                    ),
+                    child: Icon(
+                      isChecked ? Icons.check : Icons.add,
+                      color: isChecked ? Colors.white : Colors.black,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 3),
               ],
             ),
-          ),
-          SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                if (songsAdded + 1 > songsPerPlayer && isChecked == false) {
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return CupertinoAlertDialog(
-                        title: Text("Queue Limit Reached"),
-                        content: Text(
-                            "You can't add more than $songsPerPlayer songs."),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                            child: Text(
-                              "OK",
-                              style: TextStyle(color: Colors.redAccent),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                  return;
-                }
-
-                isChecked = !isChecked;
-                if (isChecked) {
-                  widget.onIncrement?.call();
-                } else {
-                  widget.onDecrement?.call();
-                }
-              });
-            },
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isChecked ? Colors.green : Colors.white,
-              ),
-              child: Icon(
-                isChecked ? Icons.check : Icons.add,
-                color: isChecked ? Colors.white : Colors.black,
-                size: 20,
-              ),
-            ),
-          ),
-          SizedBox(width: 3),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }
 
 class PlayerListing extends StatefulWidget {
-  final String imageUrl;
-  final String name;
-  final IconData iconData;
-  final Function()? removePlayer;
-  final bool enableKicking;
+  late bool enableKicking;
+  final MyPlayer playerInstance;
+  final Function(MyPlayer)? onRemove;
 
   PlayerListing({
-    this.imageUrl =
-        "https://i.scdn.co/image/ab6761610000e5eba1b1a48354e9a91fef58f651",
-    this.name = "DefaultName",
-    this.iconData = Icons.remove_circle,
-    this.removePlayer,
-    this.enableKicking = true,
+    required this.playerInstance,
+    this.onRemove,
   });
 
   @override
@@ -577,6 +697,13 @@ class PlayerListing extends StatefulWidget {
 }
 
 class _PlayerListingState extends State<PlayerListing> {
+  @override
+  void initState() {
+    super.initState();
+
+    widget.enableKicking = (localUserID != widget.playerInstance.user_id);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -590,7 +717,7 @@ class _PlayerListingState extends State<PlayerListing> {
         children: [
           ClipOval(
             child: Image.network(
-              widget.imageUrl,
+              widget.playerInstance.image,
               width: 35,
               height: 35,
               fit: BoxFit.cover,
@@ -599,7 +726,7 @@ class _PlayerListingState extends State<PlayerListing> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              widget.name,
+              widget.playerInstance.display_name,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -619,7 +746,7 @@ class _PlayerListingState extends State<PlayerListing> {
                         return CupertinoAlertDialog(
                           title: Text("Confirm"),
                           content: Text(
-                              "Are you sure you want to kick ${widget.name} from the lobby?"),
+                              "Are you sure you want to kick ${widget.playerInstance.display_name} from the lobby?"),
                           actions: [
                             CupertinoDialogAction(
                               child: Text(
@@ -637,8 +764,7 @@ class _PlayerListingState extends State<PlayerListing> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  players.remove(widget.name);
-                                  widget.removePlayer?.call();
+                                  widget.onRemove?.call(widget.playerInstance);
                                 });
                                 Navigator.pop(context);
                               },

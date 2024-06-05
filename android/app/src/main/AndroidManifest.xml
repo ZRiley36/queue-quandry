@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="flutter_application_1"
+        android:label="com.playlistpursuit"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -26,17 +26,21 @@
             </intent-filter>
         </activity>
         <activity android:name="com.linusu.flutter_web_auth.CallbackActivity" android:exported="true">
-            <intent-filter android:label="flutter_web_auth">
+            <intent-filter android:label="flutter_web_auth" android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="playlistpursuit" />
-            </intent-filter>
+                <data android:scheme="com.playlistpursuit"/>
+                </intent-filter>
         </activity>
+
+        
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+            
     </application>
 </manifest>

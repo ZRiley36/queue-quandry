@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'pages/login.dart';
 import 'styles.dart';
+import 'package:logger/logger.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 

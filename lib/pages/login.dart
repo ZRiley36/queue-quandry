@@ -1,18 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:oauth2_client/access_token_response.dart';
 import 'package:queue_quandry/styles.dart';
-import 'dart:async';
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:spotify_sdk/spotify_sdk.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../main.dart';
+import 'dart:async';
 import '../credentials.dart';
 import 'lobby.dart';
-import 'package:flutter_web_auth/flutter_web_auth.dart';
+import 'package:oauth2_client/spotify_oauth2_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const scope = 'user-read-private user-read-email';
+
+String? myToken;
+String? myRefreshToken;
+DateTime? tokenExpiration;
+
+Future<void> ensureTokenIsValid() async {
+  if (myToken == null ||
+      tokenExpiration == null ||
+      DateTime.now().isAfter(tokenExpiration!)) {
+    bool refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      throw Exception("Unable to refresh token");
+    }
+  }
+}
+
+Future<bool> refreshAccessToken() async {
+  if (myRefreshToken == null) {
+    return false;
+  }
+
+  SpotifyOAuth2Client client = SpotifyOAuth2Client(
+    customUriScheme: 'playlistpursuit',
+    redirectUri: spotifyRedirectUri,
+  );
+
+  try {
+    AccessTokenResponse accessToken = await client.refreshToken(
+      myRefreshToken!,
+      clientId: spotifyClientId,
+      clientSecret: spotifyClientSecret,
+    );
+
+    // Update global variables with the new token details
+    myToken = accessToken.accessToken;
+    myRefreshToken = accessToken.refreshToken ??
+        myRefreshToken; // Refresh token may not change
+    tokenExpiration = accessToken.expirationDate;
+
+    // Save new tokens to shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('accessToken', myToken!);
+    await prefs.setString('refreshToken', myRefreshToken!);
+    await prefs.setString('expirationDate', tokenExpiration!.toIso8601String());
+
+    print("Token refreshed successfully ✅ -> " + myToken.toString());
+    return true;
+  } catch (error) {
+    print("Failed to refresh token [ERROR: ${error.toString()}]");
+    return false;
+  }
+}
+
+Future<void> loadToken() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  myToken = prefs.getString('accessToken');
+  myRefreshToken = prefs.getString('refreshToken');
+  String? expirationString = prefs.getString('expirationDate');
+
+  if (expirationString != null) {
+    tokenExpiration = DateTime.parse(expirationString);
+  }
+
+  if (myToken != null) {
+    print("Loaded Spotify Token ✅ -> " + myToken.toString());
+  } else {
+    print("No token found, user needs to log in.");
+  }
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -22,8 +87,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  @override
-  String loginMessage = 'Login Using Spotify';
+  String loginMessage = 'Login';
   String debugMessage = 'DEBUG';
 
   @override
@@ -33,18 +97,28 @@ class _LoginPageState extends State<LoginPage> {
         body: Center(
             child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 50),
-                child:
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Container(
-                    height: 50,
-                    child: Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _login(); // Handle Spotify login action
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          // alternativeAuth();
+                          authenticateUser().then(
+                              (value) => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LobbyPage(
+                                        reset: true,
+                                      ),
+                                    ),
+                                  ), onError: (error) {
+                            print(
+                                "Serious login failure. Aborting [ERROR: ${error.toString()}]");
+                          });
                         },
                         style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(
-                              Colors.green), // Spotify green color
+                          backgroundColor:
+                              MaterialStateProperty.all<Color>(Colors.green),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -56,72 +130,71 @@ class _LoginPageState extends State<LoginPage> {
                                     fontSize: 18)),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Container(
-                    height: 50,
-                    child: Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LobbyPage(),
-                            ),
-                          );
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(
-                              Color.fromARGB(
-                                  255, 255, 136, 0)), // Spotify green color
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(debugMessage,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.18,
-                  )
-                ]))));
+                      )
+                    ]))));
   }
 
-  void _login() async {
-    Uri authUrl = Uri(
-        scheme: 'https',
-        host: 'accounts.spotify.com',
-        path: '/authorize',
-        queryParameters: {
-          'client_id': spotifyClientId,
-          'redirect_uri': spotifyRedirectUri,
-          'scope': scope,
-          'response_type': 'code',
-          'show_dialog': 'true'
-        });
+  Future<void> alternativeAuth() async {
+    await SpotifySdk.connectToSpotifyRemote(
+        clientId: spotifyClientId, redirectUrl: spotifyRedirectUri);
+  }
 
-    final result = await FlutterWebAuth.authenticate(
-        url: authUrl.toString(), callbackUrlScheme: "playlistpursuit");
+  Future<void> authenticateUser() async {
+    await loadToken();
 
-    final code = Uri.parse(result).queryParameters['code'];
+    // Check if token is not null and not expired
+    if (myToken != null && tokenExpiration != null) {
+      if (DateTime.now().isBefore(tokenExpiration!)) {
+        print(
+            "Token is valid and not expired. Proceeding without re-authentication.");
+        return;
+      } else {
+        // Token is expired, attempt to refresh it
+        bool refreshed = await refreshAccessToken();
+        if (refreshed) {
+          print(
+              "Token successfully refreshed. Proceeding without re-authentication.");
+          return;
+        }
+      }
+    }
 
-    print("Your code is: " + result.toString());
+    // Proceed with re-authentication if no valid token or refresh failed
+    AccessTokenResponse? accessToken;
+    SpotifyOAuth2Client client = SpotifyOAuth2Client(
+      customUriScheme: 'com.playlistpursuit',
+      redirectUri: spotifyRedirectUri,
+    );
 
-    // if (await canLaunchUrl(authUrl)) {
-    //   await launchUrl(authUrl);
-    // } else {
-    //   throw 'Could not launch $authUrl';
-    // }
+    var authResp = await client
+        .requestAuthorization(clientId: spotifyClientId, customParams: {
+      'show_dialog': 'true'
+    }, scopes: [
+      'user-read-private',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-currently-playing',
+      'user-read-email',
+      'user-top-read'
+    ]);
+    var authCode = authResp.code;
+
+    accessToken = await client.requestAccessToken(
+        code: authCode.toString(),
+        clientId: spotifyClientId,
+        clientSecret: spotifyClientSecret);
+
+    // Global variables
+    myToken = accessToken.accessToken;
+    myRefreshToken = accessToken.refreshToken;
+    tokenExpiration = accessToken.expirationDate;
+
+    // Save tokens to shared preferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('accessToken', myToken!);
+    await prefs.setString('refreshToken', myRefreshToken!);
+    await prefs.setString('expirationDate', tokenExpiration!.toIso8601String());
+
+    print("Acquired Spotify Token ✅ -> " + myToken.toString());
   }
 }

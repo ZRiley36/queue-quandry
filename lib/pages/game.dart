@@ -1,60 +1,73 @@
 import 'dart:async';
-
+import 'package:queue_quandry/pages/login.dart';
+import 'package:http/http.dart' as http;
+import 'package:queue_quandry/spotify-api.dart';
+import "../credentials.dart";
 import 'package:flutter/material.dart';
-import 'package:queue_quandry/pages/lobby.dart';
+import 'lobby.dart';
 import 'package:queue_quandry/styles.dart';
+import 'package:spotify_sdk/spotify_sdk.dart';
+import 'dart:convert';
 
 final int winningScore = 10;
-bool musicPlaying = false;
+bool musicPlaying = true;
 
 class GuessingPage extends StatefulWidget {
-  const GuessingPage({Key? key}) : super(key: key);
+  GuessingPage();
 
   @override
   _GuessingPageState createState() => _GuessingPageState();
 }
 
 class _GuessingPageState extends State<GuessingPage> {
+  bool _trackDataLoaded = false;
   // Fields (to be mutated by Spotify API)
-  String songName = "Purple Haze";
-  String songArtist = "Jimi Hendrix";
-  String albumArt =
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Are_You_Experienced_-_US_cover-edit.jpg/1200px-Are_You_Experienced_-_US_cover-edit.jpg';
-  int songLength = 5;
+  late String songName;
+  late String songArtist;
+  late String albumArt;
+  late int songLength;
 
   // Fields (to be mutated by our backend)
-  int guiltyPlayer = 0;
+  MyPlayer guiltyPlayer = playerList[0];
 
   // Local fields
-  double _progressValue = 0.0;
   bool correctGuess = false;
   int guessedPlayer = -1;
 
   List<bool> buttonsPressed = [];
 
+  Future<void> getTrackDetails() async {
+    var data = await getCurrentTrack();
+    songName = data['name'];
+    songArtist = data['artists'][0]['name'];
+    albumArt = data['album']['images'][0]['url'];
+    songLength = (data['duration_ms'] / 1000).toInt();
+
+    _trackDataLoaded = true;
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
 
-    for (int i = 0; i < players.entries.length; i++) {
+    for (int i = 0; i < playerList.length; i++) {
       buttonsPressed.add(false);
     }
 
-    // TODO start music playback here
-    musicPlaying = true;
+    getTrackDetails();
   }
 
   void _navigateToNextPage() {
     if (correctGuess) {
       int idx = -1;
-      for (int i = 0; i < players.entries.length; i++) {
-        if (players.entries.elementAt(i).key == myName) {
+      for (int i = 0; i < playerList.length; i++) {
+        if (playerList[i].user_id == localUserID) {
           // Retrieve the current value and add 10 to it
-          int currentValue = players.entries.elementAt(i).value;
-          players[myName] = currentValue + 10;
+          playerList[i].score += 10;
           idx = i;
 
-          if (players.entries.elementAt(idx).value >= winningScore) {
+          if (playerList[i].score >= winningScore) {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -72,6 +85,7 @@ class _GuessingPageState extends State<GuessingPage> {
         MaterialPageRoute(
           builder: (context) => ResultPage(
             isCorrect: correctGuess,
+            guiltyPlayer: guiltyPlayer,
           ),
         ),
       );
@@ -86,7 +100,7 @@ class _GuessingPageState extends State<GuessingPage> {
 
       buttonsPressed[buttonIndex] = true;
 
-      if (buttonIndex == guiltyPlayer) {
+      if (buttonIndex == playerList.indexOf(guiltyPlayer)) {
         correctGuess = true;
       } else {
         correctGuess = false;
@@ -94,19 +108,26 @@ class _GuessingPageState extends State<GuessingPage> {
     });
   }
 
-  void _pausePlayback() {
-    setState(() {
-      musicPlaying = !musicPlaying;
-    });
+  Future<void> _pause() async {
+    musicPlaying = !musicPlaying;
+
+    if (musicPlaying == false)
+      while (await isPlaying() == true) {
+        await pausePlayback();
+      }
+    else
+      while (await isPlaying() == false) {
+        await resumePlayback();
+      }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF8300e7),
-      body: Center(
-        child: Column(
-          children: <Widget>[
+    if (_trackDataLoaded) {
+      return Scaffold(
+          backgroundColor: const Color(0xFF8300e7),
+          body: Center(
+              child: Column(children: <Widget>[
             Container(
               alignment: Alignment.topCenter,
               child: Column(
@@ -123,90 +144,104 @@ class _GuessingPageState extends State<GuessingPage> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      albumArt,
-                      height: 200,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    songName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(songArtist,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.normal)),
-                  const SizedBox(height: 20),
-                  for (int i = 0; i < players.entries.length; i++)
-                    if (players.entries.elementAt(i).key != myName)
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            SizedBox(
-                                height:
-                                    10), // Add vertical space between buttons
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.85,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _handleButtonPressed(i);
-                                  });
-                                },
-                                child: Text(
-                                  players.entries.elementAt(i).key,
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold),
+                  Container(
+                    child: Builder(
+                      builder: (context) {
+                        if (_trackDataLoaded) {
+                          return Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  albumArt,
+                                  height: 200,
                                 ),
-                                style: ButtonStyle(
-                                    minimumSize: MaterialStateProperty.all(
-                                        Size(200, 70)),
-                                    shape: MaterialStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10))),
-                                    backgroundColor: MaterialStateProperty
-                                        .resolveWith<Color>(
-                                      (Set<MaterialState> states) {
-                                        if (buttonsPressed[i] == true) {
-                                          return Color(0xFF5e03a6);
-                                        } else {
-                                          return Color(0xFF7202ca);
-                                        }
-                                      },
-                                    )),
                               ),
+                              const SizedBox(height: 2),
+                              Text(
+                                songName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(songArtist,
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.normal)),
+                            ],
+                          );
+                        } else {
+                          return Container();
+                        }
+                      },
+                    ),
+                  ),
+                  Container(
+                    child: ListView.builder(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 45, vertical: 10),
+                      shrinkWrap: true,
+                      itemCount: playerList.length,
+                      itemBuilder: (context, index) {
+                        if (localUserID == playerList[index].user_id) {
+                          return Container();
+                        }
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 5),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _handleButtonPressed(index);
+                              });
+                            },
+                            child: Text(
+                              playerList[index].display_name,
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
                             ),
-                          ]),
-                ],
-              ),
-            ),
-            Expanded(
-                child: Container(
+                            style: ButtonStyle(
+                                minimumSize:
+                                    MaterialStateProperty.all(Size(200, 70)),
+                                shape: MaterialStateProperty.all<
+                                        RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10))),
+                                backgroundColor:
+                                    MaterialStateProperty.resolveWith<Color>(
+                                  (Set<MaterialState> states) {
+                                    if (buttonsPressed[index] == true) {
+                                      return Color(0xFF5e03a6);
+                                    } else {
+                                      return Color(0xFF7202ca);
+                                    }
+                                  },
+                                )),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Container(
                     alignment: Alignment.bottomCenter,
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TimerBar(
                           backgroundColor: Color(0xFF9d40e3),
                           progressColor: Colors.white,
                           period: Duration(seconds: songLength),
                           onComplete: _navigateToNextPage,
-                        ),
+                        ), // Placeholder widget when songLength is not initialized
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              _pausePlayback();
+                              _pause();
                             });
                           },
                           icon: musicPlaying
@@ -223,12 +258,17 @@ class _GuessingPageState extends State<GuessingPage> {
                         SizedBox(
                             height: MediaQuery.of(context).size.height * 0.05)
                       ],
-                      mainAxisAlignment: MainAxisAlignment.end,
-                    )))
-          ],
-        ),
-      ),
-    );
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ])));
+    } else {
+      return Scaffold(
+        backgroundColor: spotifyPurple,
+      );
+    }
   }
 }
 
@@ -305,8 +345,11 @@ class _TimerBarState extends State<TimerBar> {
 }
 
 class ResultPage extends StatefulWidget {
-  final bool isCorrect; // Step 1: Add the isCorrect parameter
-  const ResultPage({Key? key, required this.isCorrect}) : super(key: key);
+  final bool isCorrect;
+  final MyPlayer guiltyPlayer;
+  const ResultPage(
+      {Key? key, required this.isCorrect, required this.guiltyPlayer})
+      : super(key: key);
 
   @override
   _ResultPageState createState() => _ResultPageState();
@@ -314,7 +357,7 @@ class ResultPage extends StatefulWidget {
 
 class _ResultPageState extends State<ResultPage> {
   late final bool isCorrect;
-  final String correctChoice = 'Player_1';
+  late String correctChoice;
 
   bool playerWon = false;
 
@@ -322,6 +365,7 @@ class _ResultPageState extends State<ResultPage> {
   void initState() {
     super.initState();
     isCorrect = widget.isCorrect;
+    correctChoice = widget.guiltyPlayer.display_name;
   }
 
   void _navigateToNextPage() {
@@ -383,14 +427,14 @@ class _ResultPageState extends State<ResultPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 20),
-          for (int i = 0; i < players.entries.length; i++)
+          for (int i = 0; i < playerList.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: MediaQuery.of(context).size.height * 0.06,
                   decoration: BoxDecoration(
-                    color: players.entries.elementAt(i).key == myName
+                    color: playerList[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -404,7 +448,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            players.entries.elementAt(i).key,
+                            playerList[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -418,8 +462,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            players[players.entries.elementAt(i).key]
-                                .toString(),
+                            playerList[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -510,14 +553,14 @@ class _FinishPageState extends State<FinishPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 35),
-          for (int i = 0; i < players.entries.length; i++)
+          for (int i = 0; i < playerList.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: players.entries.elementAt(i).key == myName
+                    color: playerList[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -531,7 +574,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            players.entries.elementAt(i).key,
+                            playerList[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -545,8 +588,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            players[players.entries.elementAt(i).key]
-                                .toString(),
+                            playerList[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -668,7 +710,9 @@ class _EndPageState extends State<EndPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => LobbyPage(),
+                      builder: (context) => LobbyPage(
+                        reset: true,
+                      ),
                     ),
                   );
                 },
