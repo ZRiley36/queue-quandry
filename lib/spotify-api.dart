@@ -175,7 +175,7 @@ Future<List<String>> getTopTracks(String? accessToken) async {
   }
 }
 
-Future<int> getCurrentlyPlayingTrackDuration() async {
+Future<Map<String, dynamic>> getCurrentTrack() async {
   await ensureTokenIsValid();
 
   final response = await http.get(
@@ -186,6 +186,20 @@ Future<int> getCurrentlyPlayingTrackDuration() async {
   );
 
   var body = json.decode(response.body);
-  return body['item']['duration_ms'];
+  return body['item'];
   // print("Here is the track:" + body['item']);
+}
+
+Future<bool> isPlaying() async {
+  await ensureTokenIsValid();
+
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me/player'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  var body = json.decode(response.body);
+  return body['is_playing'];
 }

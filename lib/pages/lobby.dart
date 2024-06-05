@@ -358,9 +358,9 @@ class _QueuePageState extends State<QueuePage> {
     _fetchTopSongsFuture = fetchTopSongs();
   }
 
-  Future<void> addSongsToQueue(List<String> l) async {
-    for (int i = 0; i < l.length; i++) {
-      var temp = Track(l[i]);
+  Future<void> populateQueue() async {
+    for (int i = 0; i < songQueue.length; i++) {
+      var temp = Track(songQueue[i]);
       await temp.fetchTrackData();
 
       addToQueue(temp.track_uri, myToken);
@@ -504,7 +504,7 @@ class _QueuePageState extends State<QueuePage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         List<String> topSongs = await _fetchTopSongsFuture!;
-                        addSongsToQueue(songQueue);
+                        populateQueue();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
