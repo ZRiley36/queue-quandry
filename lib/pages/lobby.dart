@@ -480,8 +480,7 @@ class _QueuePageState extends State<QueuePage> {
                             );
                           } else if (snapshot.hasError) {
                             return Center(child: Text('Error searching query'));
-                          } else if (snapshot.connectionState ==
-                              ConnectionState.done) {
+                          } else {
                             return ListView.builder(
                                 itemCount: 5,
                                 itemBuilder: (BuildContext context, int index) {
@@ -495,14 +494,13 @@ class _QueuePageState extends State<QueuePage> {
                                   );
                                 });
                           }
-
-                          return Container();
                         }))
                 : Expanded(
                     child: FutureBuilder(
                       future: _fetchTopSongsFuture,
                       builder: (context, AsyncSnapshot<List<String>> snapshot) {
-                        if (snapshot.connectionState == ConnectionState) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return Align(
                             alignment: Alignment.topCenter,
                             child: Text(
