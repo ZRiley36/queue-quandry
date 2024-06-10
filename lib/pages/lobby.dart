@@ -15,7 +15,7 @@ List<MyPlayer> playerList = [];
 List<String> songQueue = [];
 
 int songsPerPlayer = 3;
-int songsAdded = 0;
+ValueNotifier<int> songsAdded = ValueNotifier<int>(0);
 
 String localUserID = "DefaultUser";
 
@@ -176,7 +176,13 @@ class _LobbyPageState extends State<LobbyPage> {
                   _initAllPlayers(), // The future passed from the parent widget
               builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator(); // Show a loading spinner
+                  return Text(
+                    'Loading players...',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w400),
+                  ); // Show a loading spinner
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}'); // Handle errors
                 } else {
@@ -344,7 +350,9 @@ class _QueuePageState extends State<QueuePage> {
 
   bool isSearching = false;
   Future<List<String>>? _fetchTopSongsFuture;
+  Future<List<String>>? _searchedSongs;
   List<String> topSongs = [];
+  List<String> searchResults = [];
 
   Future<List<String>> fetchTopSongs() async {
     return await getTopTracks(myToken);
@@ -354,7 +362,7 @@ class _QueuePageState extends State<QueuePage> {
   void initState() {
     super.initState();
 
-    songsAdded = 0;
+    songsAdded.value = 0;
     _fetchTopSongsFuture = fetchTopSongs();
   }
 
@@ -367,6 +375,10 @@ class _QueuePageState extends State<QueuePage> {
     }
 
     await startNextTrack();
+  }
+
+  Future<void> _search(String query) async {
+    _searchedSongs = searchQuery(query);
   }
 
   @override
@@ -404,9 +416,9 @@ class _QueuePageState extends State<QueuePage> {
                   isSearching = value.isNotEmpty;
                 });
                 String searchTerm = value;
-                print('Searching for song: $searchTerm');
+                _search(searchTerm);
               },
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 border: OutlineInputBorder(
@@ -422,9 +434,9 @@ class _QueuePageState extends State<QueuePage> {
                 prefixIcon: Icon(Icons.search),
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             isSearching
-                ? Padding(
+                ? const Padding(
                     padding: EdgeInsets.only(bottom: 20),
                     child: Text(
                       "Search results",
@@ -436,7 +448,7 @@ class _QueuePageState extends State<QueuePage> {
                       ),
                     ),
                   )
-                : Padding(
+                : const Padding(
                     padding: EdgeInsets.only(bottom: 20),
                     child: Text(
                       "Your top songs",
@@ -449,17 +461,58 @@ class _QueuePageState extends State<QueuePage> {
                     ),
                   ),
             isSearching
-                ? Container()
-                : SizedBox(height: MediaQuery.of(context).size.height * 0.005),
-            isSearching
-                ? Container()
+                ? Expanded(
+                    child: FutureBuilder(
+                        future: _searchedSongs,
+                        builder:
+                            (context, AsyncSnapshot<List<String>> snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Align(
+                              alignment: Alignment.topCenter,
+                              child: Text(
+                                'Loading...',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Center(child: Text('Error searching query'));
+                          } else if (snapshot.connectionState ==
+                              ConnectionState.done) {
+                            return ListView.builder(
+                                itemCount: 5,
+                                itemBuilder: (BuildContext context, int index) {
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 8),
+                                    child: SongListing(
+                                      track: Track(snapshot.data![index]),
+                                      onIncrement: incrementSongsAdded,
+                                      onDecrement: decrementSongsAdded,
+                                    ),
+                                  );
+                                });
+                          }
+
+                          return Container();
+                        }))
                 : Expanded(
                     child: FutureBuilder(
                       future: _fetchTopSongsFuture,
                       builder: (context, AsyncSnapshot<List<String>> snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState == ConnectionState) {
+                          return Align(
+                            alignment: Alignment.topCenter,
+                            child: Text(
+                              'Loading tracks...',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          );
                         } else {
                           if (snapshot.hasError) {
                             return Center(
@@ -483,49 +536,65 @@ class _QueuePageState extends State<QueuePage> {
                       },
                     ),
                   ),
-            isSearching ? Container() : SizedBox(height: 20),
-            Center(
-              child: Text(
-                isSearching
-                    ? ""
-                    : "Queue " +
-                        (widget.songsPerPlayer - songsAdded).toString() +
-                        " more songs",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            SizedBox(
+              height: 10,
             ),
-            isSearching
-                ? Container()
-                : Center(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        List<String> topSongs = await _fetchTopSongsFuture!;
-                        populateQueue();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => GuessingPage()),
-                        );
-                      },
-                      child: Text(
-                        "Continue",
-                        style: TextStyle(
-                            color: Colors.black, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30.0),
+            ValueListenableBuilder(
+                valueListenable: songsAdded,
+                builder: (context, value, child) {
+                  return Builder(builder: (BuildContext context) {
+                    bool _enableButton = false;
+
+                    if (widget.songsPerPlayer - songsAdded.value <= 0) {
+                      _enableButton = true;
+                    }
+
+                    if (_enableButton) {
+                      return Center(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            List<String> topSongs = await _fetchTopSongsFuture!;
+                            populateQueue();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => GuessingPage()),
+                            );
+                          },
+                          child: Text(
+                            "Start Game",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 25, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                            backgroundColor: spotifyGreen,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-            SizedBox(height: 20),
+                      );
+                    } else {
+                      return Center(
+                          child: Text(
+                        "Add " +
+                            (widget.songsPerPlayer - songsAdded.value)
+                                .toString() +
+                            " more songs",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ));
+                    }
+                  });
+                }),
+            SizedBox(height: 40),
           ],
         ),
       ),
@@ -533,15 +602,11 @@ class _QueuePageState extends State<QueuePage> {
   }
 
   void incrementSongsAdded() {
-    setState(() {
-      songsAdded++;
-    });
+    songsAdded.value++;
   }
 
   void decrementSongsAdded() {
-    setState(() {
-      songsAdded--;
-    });
+    songsAdded.value--;
   }
 }
 
@@ -561,11 +626,15 @@ class SongListing extends StatefulWidget {
 }
 
 class _SongListingState extends State<SongListing> {
-  bool isChecked = false;
+  ValueNotifier<bool> isChecked = ValueNotifier<bool>(false);
 
   @override
   void initState() {
     super.initState();
+
+    if (songQueue.contains(widget.track.track_id)) {
+      isChecked.value = true;
+    }
   }
 
   @override
@@ -574,7 +643,7 @@ class _SongListingState extends State<SongListing> {
       future: widget.track.fetchTrackData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return Container();
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else {
@@ -621,10 +690,9 @@ class _SongListingState extends State<SongListing> {
                 ),
                 SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (songsAdded + 1 > songsPerPlayer &&
-                          isChecked == false) {
+                    onTap: () {
+                      if (!isChecked.value &&
+                          songsAdded.value + 1 > songsPerPlayer) {
                         showCupertinoDialog(
                           context: context,
                           builder: (BuildContext context) {
@@ -648,30 +716,34 @@ class _SongListingState extends State<SongListing> {
                         return;
                       }
 
-                      isChecked = !isChecked;
-                      if (isChecked) {
+                      isChecked.value = !isChecked.value;
+                      if (isChecked.value) {
                         songQueue.add(widget.track.track_id);
                         widget.onIncrement?.call();
                       } else {
                         songQueue.remove(widget.track.track_id);
                         widget.onDecrement?.call();
                       }
-                    });
-                  },
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isChecked ? Colors.green : Colors.white,
-                    ),
-                    child: Icon(
-                      isChecked ? Icons.check : Icons.add,
-                      color: isChecked ? Colors.white : Colors.black,
-                      size: 20,
-                    ),
-                  ),
-                ),
+                    },
+                    child: ValueListenableBuilder<bool>(
+                        valueListenable: isChecked,
+                        builder: (context, value, child) {
+                          return Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color:
+                                  isChecked.value ? Colors.green : Colors.white,
+                            ),
+                            child: Icon(
+                              isChecked.value ? Icons.check : Icons.add,
+                              color:
+                                  isChecked.value ? Colors.white : Colors.black,
+                              size: 20,
+                            ),
+                          );
+                        })),
                 SizedBox(width: 3),
               ],
             ),

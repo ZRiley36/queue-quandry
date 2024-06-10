@@ -203,3 +203,31 @@ Future<bool> isPlaying() async {
   var body = json.decode(response.body);
   return body['is_playing'];
 }
+
+Future<List<String>> searchQuery(String query) async {
+  await ensureTokenIsValid();
+
+  final String url = 'https://api.spotify.com/v1/search';
+
+  try {
+    final response = await http.get(
+      Uri.parse(
+          '$url?q=${Uri.encodeComponent(query)}&type=track&market=US&limit=5'),
+      headers: {
+        'Authorization': 'Bearer $myToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final List<dynamic> tracks = data['tracks']['items'];
+      List<String> trackIds =
+          tracks.map<String>((track) => track['id'] as String).toList();
+      return trackIds;
+    } else {
+      return [];
+    }
+  } catch (e) {
+    return [];
+  }
+}
