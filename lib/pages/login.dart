@@ -87,7 +87,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  String loginMessage = 'Login';
+  String loginMessage = 'Connect to Spotify';
   String debugMessage = 'DEBUG';
 
   @override
@@ -97,41 +97,64 @@ class _LoginPageState extends State<LoginPage> {
         body: Center(
             child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 50),
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () async {
-                          // alternativeAuth();
-                          authenticateUser().then(
-                              (value) => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LobbyPage(
-                                        reset: true,
-                                      ),
-                                    ),
-                                  ), onError: (error) {
-                            print(
-                                "Serious login failure. Aborting [ERROR: ${error.toString()}]");
-                          });
-                        },
-                        style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all<Color>(Colors.green),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(loginMessage,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18)),
-                          ],
-                        ),
-                      )
-                    ]))));
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.27,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.asset('assets/1024.png'),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  Text(
+                    'Playlist Pursuit',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // alternativeAuth();
+                      authenticateUser().then(
+                          (value) => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LobbyPage(
+                                    reset: true,
+                                  ),
+                                ),
+                              ), onError: (error) {
+                        print(
+                            "Serious login failure. Aborting [ERROR: ${error.toString()}]");
+                      });
+                    },
+                    style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all<Color>(spotifyGreen),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(padding: EdgeInsets.symmetric(vertical: 25)),
+                        Text(loginMessage,
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.3,
+                  )
+                ]))));
   }
 
   Future<void> alternativeAuth() async {
