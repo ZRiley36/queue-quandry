@@ -36,9 +36,16 @@ class _GuessingPageState extends State<GuessingPage> {
 
   List<bool> buttonsPressed = [];
 
-  Future<void> getTrackDetails() async {
-    var data = await getCurrentTrack();
+  Future<void> getNewTrack() async {
+    // await cleanSpotifyQueue();
+
+    String new_song = songQueue.removeAt(0);
+
+    var data = await getTrackInfo(new_song);
+    await playTrack(new_song);
+
     songName = data['name'];
+
     songArtist = data['artists'][0]['name'];
     albumArt = data['album']['images'][0]['url'];
     songLength = (data['duration_ms'] / 1000).toInt();
@@ -55,41 +62,41 @@ class _GuessingPageState extends State<GuessingPage> {
       buttonsPressed.add(false);
     }
 
-    getTrackDetails();
+    getNewTrack();
   }
 
-  void _navigateToNextPage() {
-    if (correctGuess) {
-      int idx = -1;
-      for (int i = 0; i < playerList.length; i++) {
-        if (playerList[i].user_id == localUserID) {
-          // Retrieve the current value and add 10 to it
-          playerList[i].score += 10;
-          idx = i;
-
-          if (playerList[i].score >= winningScore) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FinishPage(
-                  playerWon: true,
-                ),
-              ),
-            );
-          }
-        }
+  void _navigateToNextPage() async {
+    for (int i = 0; i < playerList.length; i++) {
+      if (playerList[i].user_id == localUserID && correctGuess) {
+        // Retrieve the current value and add 10 to it
+        playerList[i].score += 10;
       }
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResultPage(
-            isCorrect: correctGuess,
-            guiltyPlayer: guiltyPlayer,
-          ),
-        ),
-      );
     }
+
+    for (int i = 0; i < playerList.length; i++) {
+      if (playerList[i].score >= winningScore) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FinishPage(
+              playerWon: true,
+            ),
+          ),
+        );
+
+        return;
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultPage(
+          isCorrect: correctGuess,
+          guiltyPlayer: guiltyPlayer,
+        ),
+      ),
+    );
   }
 
   void _handleButtonPressed(int buttonIndex) {

@@ -100,6 +100,8 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   Future<void> _initAllPlayers() async {
+    print("init all players");
+
     await Future.forEach(playerList, (MyPlayer instance) async {
       if (!instance.isInitialized) {
         await instance.initPlayer();
@@ -351,8 +353,6 @@ class _QueuePageState extends State<QueuePage> {
   bool isSearching = false;
   Future<List<String>>? _fetchTopSongsFuture;
   Future<List<String>>? _searchedSongs;
-  List<String> topSongs = [];
-  List<String> searchResults = [];
 
   Future<List<String>> fetchTopSongs() async {
     return await getTopTracks(myToken);
@@ -364,17 +364,6 @@ class _QueuePageState extends State<QueuePage> {
 
     songsAdded.value = 0;
     _fetchTopSongsFuture = fetchTopSongs();
-  }
-
-  Future<void> populateQueue() async {
-    for (int i = 0; i < songQueue.length; i++) {
-      var temp = Track(songQueue[i]);
-      await temp.fetchTrackData();
-
-      addToQueue(temp.track_uri, myToken);
-    }
-
-    await startNextTrack();
   }
 
   Future<void> _search(String query) async {
@@ -551,8 +540,6 @@ class _QueuePageState extends State<QueuePage> {
                       return Center(
                         child: ElevatedButton(
                           onPressed: () async {
-                            List<String> topSongs = await _fetchTopSongsFuture!;
-                            populateQueue();
                             Navigator.push(
                               context,
                               MaterialPageRoute(

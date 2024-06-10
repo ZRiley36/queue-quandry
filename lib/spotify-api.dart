@@ -128,7 +128,7 @@ Future<void> addToQueue(String? trackUri, String? accessToken) async {
   }
 }
 
-Future<void> startNextTrack() async {
+Future<void> skipTrack() async {
   await ensureTokenIsValid();
 
   final url = Uri.parse('https://api.spotify.com/v1/me/player/next');
@@ -142,7 +142,7 @@ Future<void> startNextTrack() async {
   );
 
   if (response.statusCode == 204) {
-    print("next track");
+    print(response.body);
   } else {
     print("failed to skip track");
   }
@@ -229,5 +229,81 @@ Future<List<String>> searchQuery(String query) async {
     }
   } catch (e) {
     return [];
+  }
+}
+
+Future<String?> getActiveDevice() async {
+  final response = await http.get(
+    Uri.parse('https://api.spotify.com/v1/me/player/devices'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final devices = json.decode(response.body)['devices'];
+    for (var device in devices) {
+      if (device['is_active'] == true) {
+        return device['id'];
+      }
+    }
+    return null;
+  } else {
+    throw Exception('Failed to get devices: ${response.reasonPhrase}');
+  }
+}
+
+Future<void> playTrack(String track_id) async {
+  await ensureTokenIsValid();
+
+  String? deviceId = await getActiveDevice();
+  String track_uri = "spotify:track:" + track_id;
+
+  final response = await http.put(
+    Uri.parse('https://api.spotify.com/v1/me/player/play'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'device_id': deviceId,
+      'uris': [track_uri],
+    }),
+  );
+
+  if (response.statusCode == 204) {
+  } else {
+    throw Exception('Failed to play song: ${response.reasonPhrase}');
+  }
+}
+
+Future<dynamic> getTrackInfo(String track_id) async {
+  await ensureTokenIsValid();
+
+  final String url = 'https://api.spotify.com/v1/tracks/$track_id';
+  final response = await http.get(
+    Uri.parse(url),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception('Failed to load track');
+  }
+}
+
+Future<void> cleanSpotifyQueue() async {
+  bool queueNotEmpty = true;
+
+  while (queueNotEmpty) {
+    try {
+      await skipTrack();
+    } catch (e) {
+      queueNotEmpty = false;
+      print('Queue is now empty or there was an error: $e');
+    }
   }
 }
