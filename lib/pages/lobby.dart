@@ -373,6 +373,8 @@ class _QueuePageState extends State<QueuePage> {
     super.initState();
 
     songsAdded.value = 0;
+    songQueue = [];
+    playbackQueue = [];
     _fetchTopSongsFuture = fetchTopSongs();
   }
 
@@ -540,7 +542,7 @@ class _QueuePageState extends State<QueuePage> {
                 valueListenable: songsAdded,
                 builder: (context, value, child) {
                   return Builder(builder: (BuildContext context) {
-                    bool _enableButton = true; // true jsut for debug
+                    bool _enableButton = false; // true jsut for debug
 
                     if (widget.songsPerPlayer - songsAdded.value <= 0) {
                       _enableButton = true;

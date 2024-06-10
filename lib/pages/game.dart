@@ -28,12 +28,10 @@ class _GuessingPageState extends State<GuessingPage> {
   late int songLength;
 
   // Fields (to be mutated by our backend)
-  MyPlayer guiltyPlayer = playerList.value[0];
+  MyPlayer guiltyPlayer = playerList.value[1];
 
   // Local fields
   bool correctGuess = false;
-  int guessedPlayer = -1;
-
   List<bool> buttonsPressed = [];
 
   Future<void> getNewTrack() async {
@@ -68,8 +66,6 @@ class _GuessingPageState extends State<GuessingPage> {
   void _navigateToNextPage() async {
     print("Guilty: " +
         guiltyPlayer.display_name +
-        "but selected: " +
-        guessedPlayer.toString() +
         " and buttons pressed: " +
         buttonsPressed.toString());
 
@@ -115,7 +111,7 @@ class _GuessingPageState extends State<GuessingPage> {
 
       buttonsPressed[buttonIndex] = true;
 
-      if (buttonIndex + 1 == playerList.value.indexOf(guiltyPlayer)) {
+      if (buttonIndex == playerList.value.indexOf(guiltyPlayer)) {
         correctGuess = true;
       } else {
         correctGuess = false;
@@ -384,12 +380,23 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   void _navigateToNextPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GuessingPage(),
-      ),
-    );
+    if (playbackQueue.length > 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GuessingPage(),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FinishPage(
+            playerWon: true,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -691,7 +698,7 @@ class _EndPageState extends State<EndPage> {
                     height: 250,
                   ),
                   const Text(
-                    "Relive your Game",
+                    "Save your game",
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 30,
@@ -701,11 +708,11 @@ class _EndPageState extends State<EndPage> {
                   SizedBox(
                     height: 20,
                   ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      albumArt,
-                      height: 200,
+                  Container(
+                    height: 200,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset('assets/1024.png'),
                     ),
                   ),
                   SizedBox(height: 20),
