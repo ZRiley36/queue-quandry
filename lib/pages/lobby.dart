@@ -11,11 +11,12 @@ import '../spotify-api.dart';
 import '../main.dart';
 import 'package:logger/logger.dart';
 
-List<MyPlayer> playerList = [];
+ValueNotifier<List<MyPlayer>> playerList = ValueNotifier<List<MyPlayer>>([]);
 List<String> songQueue = [];
 
 int songsPerPlayer = 3;
 ValueNotifier<int> songsAdded = ValueNotifier<int>(0);
+List<String> playbackQueue = [];
 
 String localUserID = "DefaultUser";
 
@@ -31,13 +32,11 @@ Future<String> getLocalUserID() async {
 }
 
 class LobbyPage extends StatefulWidget {
-  final int numPlayers;
   final int songsPerPlayer;
   final bool reset;
 
   const LobbyPage({
     Key? key,
-    this.numPlayers = 2,
     this.songsPerPlayer = 1,
     required this.reset,
   }) : super(key: key);
@@ -47,77 +46,77 @@ class LobbyPage extends StatefulWidget {
 }
 
 class _LobbyPageState extends State<LobbyPage> {
-  late int _numPlayers;
-
   Future<void> addLocalPlayer() async {
     localUserID = await getLocalUserID();
 
-    setState(() {
-      playerList.add(MyPlayer(localUserID));
-    });
+    playerList.value.add(MyPlayer(localUserID));
   }
 
-  Future<void> addHeadlessPlayer(String id) async {
-    setState(() {
-      playerList.add(MyPlayer(id));
-    });
+  void addHeadlessPlayer(String id) {
+    playerList.value.add(MyPlayer(id));
   }
 
-  Future<void> addRemotePlayer(String incomingID) async {
-    setState(() {
-      playerList.add(MyPlayer(incomingID));
-    });
+  void addRemotePlayer(String incomingID) {
+    playerList.value.add(MyPlayer(incomingID));
   }
 
   void resetLobby() {
-    playerList.clear();
+    playerList.value.clear();
   }
 
   @override
   void initState() {
     super.initState();
-    _numPlayers = widget.numPlayers;
 
     // reset the lobby
     if (widget.reset) resetLobby();
 
-    // populate the lobby
-    addLocalPlayer();
-    // DEBUG: add more players
-    addHeadlessPlayer('abrawolf');
-    addHeadlessPlayer('tommyryan2002');
-    addHeadlessPlayer('nickwaizenegger');
+    _initAllPlayers();
   }
 
   void removePlayer(MyPlayer playerInstance) {
-    setState(() {
-      String display_name = playerInstance.display_name;
+    String display_name = playerInstance.display_name;
 
-      playerList.remove(playerInstance);
+    playerList.value.remove(playerInstance);
 
-      print("🔴 Removed player $display_name from lobby.");
-    });
+    print("🔴 Removed player $display_name from lobby.");
+
+    playerList.notifyListeners();
   }
 
   Future<void> _initAllPlayers() async {
     print("init all players");
 
-    await Future.forEach(playerList, (MyPlayer instance) async {
+    // populate the lobby
+    await addLocalPlayer();
+    addHeadlessPlayer('abrawolf');
+    addHeadlessPlayer('tommyryan2002');
+    addHeadlessPlayer('nickwaizenegger');
+
+    await Future.forEach(playerList.value, (MyPlayer instance) async {
       if (!instance.isInitialized) {
         await instance.initPlayer();
         String display_name = instance.display_name;
         print("🟢 Player $display_name joined lobby.");
+
+        playerList.notifyListeners();
       }
     });
+
+    setState(() {});
   }
 
   Widget _createAllPlayerListings() {
     return ListView.builder(
       shrinkWrap: true,
       padding: EdgeInsets.all(0),
-      itemCount: playerList.length,
+      itemCount: playerList.value.length,
       itemBuilder: (BuildContext context, int index) {
-        final playerInstance = playerList[index];
+        final playerInstance = playerList.value[index];
+
+        if (playerInstance.isInitialized == false) {
+          return Container();
+        }
 
         return Padding(
           padding: EdgeInsets.only(top: 6, bottom: 6),
@@ -172,26 +171,41 @@ class _LobbyPageState extends State<LobbyPage> {
             SizedBox(
               height: 5,
             ),
-            Container(
-                child: FutureBuilder<void>(
-              future:
-                  _initAllPlayers(), // The future passed from the parent widget
-              builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Text(
-                    'Loading players...',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w400),
-                  ); // Show a loading spinner
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}'); // Handle errors
-                } else {
-                  return _createAllPlayerListings();
-                }
-              },
-            )),
+            SizedBox(
+                height: MediaQuery.of(context).size.height * 0.30,
+                child: ValueListenableBuilder<List<MyPlayer>>(
+                  valueListenable: playerList,
+                  builder: (context, value, child) {
+                    if (value.length < 1) {
+                      return Text(
+                        'Loading players...',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: value.length,
+                      itemBuilder: (context, index) {
+                        final playerInstance = playerList.value[index];
+
+                        if (playerInstance.isInitialized == false) {
+                          return Container();
+                        }
+
+                        return Padding(
+                          padding: EdgeInsets.only(top: 6, bottom: 6),
+                          child: PlayerListing(
+                            playerInstance: playerInstance,
+                            onRemove: removePlayer,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )),
             SizedBox(
               height: 5,
             ),
@@ -247,7 +261,7 @@ class _LobbyPageState extends State<LobbyPage> {
                       },
                     ),
                   ),
-                  if (playerList.length > 1)
+                  if (playerList.value.length > 1)
                     Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -258,7 +272,6 @@ class _LobbyPageState extends State<LobbyPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => QueuePage(
-                                    numPlayers: _numPlayers,
                                     songsPerPlayer: songsPerPlayer,
                                   ),
                                 ),
@@ -336,12 +349,9 @@ DropdownButtonFormField<int> _buildDropdown(
 }
 
 class QueuePage extends StatefulWidget {
-  final int numPlayers;
   final int songsPerPlayer;
 
-  const QueuePage(
-      {Key? key, required this.numPlayers, required this.songsPerPlayer})
-      : super(key: key);
+  const QueuePage({Key? key, required this.songsPerPlayer}) : super(key: key);
 
   @override
   _QueuePageState createState() => _QueuePageState();
@@ -530,7 +540,7 @@ class _QueuePageState extends State<QueuePage> {
                 valueListenable: songsAdded,
                 builder: (context, value, child) {
                   return Builder(builder: (BuildContext context) {
-                    bool _enableButton = false;
+                    bool _enableButton = true; // true jsut for debug
 
                     if (widget.songsPerPlayer - songsAdded.value <= 0) {
                       _enableButton = true;
@@ -540,6 +550,8 @@ class _QueuePageState extends State<QueuePage> {
                       return Center(
                         child: ElevatedButton(
                           onPressed: () async {
+                            playbackQueue = [...songQueue];
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -740,7 +752,6 @@ class _SongListingState extends State<SongListing> {
 }
 
 class PlayerListing extends StatefulWidget {
-  late bool enableKicking;
   final MyPlayer playerInstance;
   final Function(MyPlayer)? onRemove;
 
@@ -754,11 +765,21 @@ class PlayerListing extends StatefulWidget {
 }
 
 class _PlayerListingState extends State<PlayerListing> {
+  bool enableKicking = false;
+
   @override
   void initState() {
     super.initState();
 
-    widget.enableKicking = (localUserID != widget.playerInstance.user_id);
+    bool isRemote = (localUserID != widget.playerInstance.user_id);
+
+    setState(() {
+      if (isRemote) {
+        enableKicking = true;
+      } else {
+        enableKicking = false;
+      }
+    });
   }
 
   @override
@@ -794,7 +815,7 @@ class _PlayerListingState extends State<PlayerListing> {
 
           // Enable the kicking option if it's allowed for the player
 
-          widget.enableKicking
+          enableKicking
               ? GestureDetector(
                   onTap: () {
                     showCupertinoDialog(

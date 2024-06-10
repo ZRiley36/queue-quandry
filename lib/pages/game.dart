@@ -28,7 +28,7 @@ class _GuessingPageState extends State<GuessingPage> {
   late int songLength;
 
   // Fields (to be mutated by our backend)
-  MyPlayer guiltyPlayer = playerList[0];
+  MyPlayer guiltyPlayer = playerList.value[0];
 
   // Local fields
   bool correctGuess = false;
@@ -39,7 +39,7 @@ class _GuessingPageState extends State<GuessingPage> {
   Future<void> getNewTrack() async {
     // await cleanSpotifyQueue();
 
-    String new_song = songQueue.removeAt(0);
+    String new_song = playbackQueue.removeAt(0);
 
     var data = await getTrackInfo(new_song);
     await playTrack(new_song);
@@ -58,7 +58,7 @@ class _GuessingPageState extends State<GuessingPage> {
   void initState() {
     super.initState();
 
-    for (int i = 0; i < playerList.length; i++) {
+    for (int i = 0; i < playerList.value.length; i++) {
       buttonsPressed.add(false);
     }
 
@@ -66,15 +66,23 @@ class _GuessingPageState extends State<GuessingPage> {
   }
 
   void _navigateToNextPage() async {
-    for (int i = 0; i < playerList.length; i++) {
-      if (playerList[i].user_id == localUserID && correctGuess) {
+    print("Guilty: " +
+        guiltyPlayer.display_name +
+        "but selected: " +
+        guessedPlayer.toString() +
+        " and buttons pressed: " +
+        buttonsPressed.toString());
+
+    for (int i = 0; i < playerList.value.length; i++) {
+      if (playerList.value[i].user_id == localUserID && correctGuess) {
         // Retrieve the current value and add 10 to it
-        playerList[i].score += 10;
+
+        playerList.value[i].score += 10;
       }
     }
 
-    for (int i = 0; i < playerList.length; i++) {
-      if (playerList[i].score >= winningScore) {
+    for (int i = 0; i < playerList.value.length; i++) {
+      if (playerList.value[i].score >= winningScore) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -107,7 +115,7 @@ class _GuessingPageState extends State<GuessingPage> {
 
       buttonsPressed[buttonIndex] = true;
 
-      if (buttonIndex == playerList.indexOf(guiltyPlayer)) {
+      if (buttonIndex + 1 == playerList.value.indexOf(guiltyPlayer)) {
         correctGuess = true;
       } else {
         correctGuess = false;
@@ -191,9 +199,9 @@ class _GuessingPageState extends State<GuessingPage> {
                       padding:
                           EdgeInsets.symmetric(horizontal: 45, vertical: 10),
                       shrinkWrap: true,
-                      itemCount: playerList.length,
+                      itemCount: playerList.value.length,
                       itemBuilder: (context, index) {
-                        if (localUserID == playerList[index].user_id) {
+                        if (localUserID == playerList.value[index].user_id) {
                           return Container();
                         }
                         return Container(
@@ -205,7 +213,7 @@ class _GuessingPageState extends State<GuessingPage> {
                               });
                             },
                             child: Text(
-                              playerList[index].display_name,
+                              playerList.value[index].display_name,
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
@@ -434,14 +442,14 @@ class _ResultPageState extends State<ResultPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 20),
-          for (int i = 0; i < playerList.length; i++)
+          for (int i = 0; i < playerList.value.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: MediaQuery.of(context).size.height * 0.06,
                   decoration: BoxDecoration(
-                    color: playerList[i].user_id == localUserID
+                    color: playerList.value[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -455,7 +463,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            playerList[i].display_name,
+                            playerList.value[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -469,7 +477,7 @@ class _ResultPageState extends State<ResultPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            playerList[i].score.toString(),
+                            playerList.value[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -560,14 +568,14 @@ class _FinishPageState extends State<FinishPage> {
                   fontSize: 30,
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 35),
-          for (int i = 0; i < playerList.length; i++)
+          for (int i = 0; i < playerList.value.length; i++)
             Column(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * 0.75,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: playerList[i].user_id == localUserID
+                    color: playerList.value[i].user_id == localUserID
                         ? myBoxColor
                         : boxColor,
                     borderRadius: BorderRadius.circular(8),
@@ -581,7 +589,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            playerList[i].display_name,
+                            playerList.value[i].display_name,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -595,7 +603,7 @@ class _FinishPageState extends State<FinishPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            playerList[i].score.toString(),
+                            playerList.value[i].score.toString(),
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -807,6 +815,8 @@ class _SavePlaylistButtonState extends State<SavePlaylistButton> {
                     if (widget.onTap != null) {
                       widget.onTap!();
                     }
+
+                    createPlaylist("Queue Quandary");
                   },
                   child: Container(
                     key: ValueKey<bool>(_isChecked),

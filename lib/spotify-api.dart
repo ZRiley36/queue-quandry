@@ -1,4 +1,5 @@
 import 'package:queue_quandry/credentials.dart';
+import 'package:queue_quandry/pages/lobby.dart';
 import 'package:queue_quandry/pages/login.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
@@ -306,4 +307,43 @@ Future<void> cleanSpotifyQueue() async {
       print('Queue is now empty or there was an error: $e');
     }
   }
+}
+
+Future<void> createPlaylist(String playlistName) async {
+  final response = await http.post(
+    Uri.parse('https://api.spotify.com/v1/users/$localUserID/playlists'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'name': playlistName,
+      'public': false, // Change to true if you want the playlist to be public
+    }),
+  );
+
+  if (response.statusCode == 201) {
+    final playlistData = json.decode(response.body);
+    final playlistId = playlistData['id'];
+
+    // Add tracks to the newly created playlist
+    await addTracksToPlaylist(playlistId);
+
+    print('Playlist created successfully.');
+  } else {
+    throw Exception('Failed to create playlist: ${response.reasonPhrase}');
+  }
+}
+
+Future<void> addTracksToPlaylist(String playlistId) async {
+  final response = await http.post(
+    Uri.parse('https://api.spotify.com/v1/playlists/$playlistId/tracks'),
+    headers: {
+      'Authorization': 'Bearer $myToken',
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'uris': songQueue.map((id) => 'spotify:track:$id').toList(),
+    }),
+  );
 }
